@@ -18,6 +18,9 @@ namespace xcool {
         public:
             parser_error(const std::pair<int, int> &position, std::string msg) : runtime_error("position (" + int2str(position.first) + ", " + int2str(position.second) + ") : " + msg){}
     };
-
+    class semant_error : public std::runtime_error {
+        public:
+            semant_error(const std::pair<int, int> &position, std::string msg) : runtime_error("position (" + int2str(position.first) + ", " + int2str(position.second) + ") : " + msg){}
+    };
 }
 #endif

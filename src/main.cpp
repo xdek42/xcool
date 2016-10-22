@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include "error.h"
+#include "semant.h"
 
 int main(int argc, char *argv[])
 {
@@ -11,6 +12,9 @@ int main(int argc, char *argv[])
         xcool::Tokenizer lexer(argv[1]);
         xcool::Parser parser(lexer);
         xcool::ast::Program program = parser.get_result();
+        xcool::SemantChecker semantChecker;
+        std::shared_ptr<xcool::InherGraph> root = semantChecker.buildInherGraph(program);
+        semantChecker.printGraph(root);
     }
     catch (xcool::token_error err) {
         std::cout << "lexer error: " << err.what() << std::endl;

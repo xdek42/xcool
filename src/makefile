@@ -1,6 +1,6 @@
 #target
-xcool: lexer.h parser.h error.h auxiliary.o lexer.o AstTree.o parser.o
-	g++ auxiliary.o lexer.o AstTree.o parser.o main.cpp -o xcool -std=c++11
+xcool: lexer.h parser.h error.h auxiliary.o lexer.o AstTree.o parser.o semant.o
+	g++ auxiliary.o lexer.o AstTree.o parser.o semant.o main.cpp -o xcool -std=c++11
 
 #auxiliary function
 auxiliary.o : auxiliary.h auxiliary.cpp
@@ -21,7 +21,11 @@ AstTree.o: AstTree.h AstTree.cpp
 parser.h: AstTree.h 
 parser.o : parser.h error.h auxiliary.h parser.cpp
 	g++ parser.cpp -c -std=c++11
-
+	
+#semant checker module
+semant.h: AstTree.h
+semant.o: semant.h error.h semant.cpp auxiliary.h
+	g++ semant.cpp -c -std=c++11
 clean:
 	rm *.o xcool
 
