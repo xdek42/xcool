@@ -13,8 +13,8 @@ int main(int argc, char *argv[])
         xcool::Parser parser(lexer);
         xcool::ast::Program program = parser.get_result();
         xcool::SemantChecker semantChecker;
-        std::shared_ptr<xcool::InherGraph> root = semantChecker.buildInherGraph(program);
-        semantChecker.printGraph(root);
+        std::shared_ptr<xcool::InherGraph> root = semantChecker.build_graph(program);
+        root->print_graph(root);
     }
     catch (xcool::token_error err) {
         std::cout << "lexer error: " << err.what() << std::endl;

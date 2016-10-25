@@ -27,8 +27,8 @@ SymbolTab.o: SymbolTab.h
 	g++ SymbolTab.cpp -c -std=c++11
 
 #semant checker module
-semant.h: AstTree.h
-semant.o: semant.h error.h semant.cpp auxiliary.h
+semant.h: AstTree.h SymbolTab.h
+semant.o: semant.h error.h semant.cpp auxiliary.h 
 	g++ semant.cpp -c -std=c++11
 clean:
 	rm *.o xcool

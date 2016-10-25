@@ -21,7 +21,7 @@ bool SymbolTable::find(std::string name)
     return currentTab->find(name);
 }
 
-int SymbolTable::insert(std::string name, std::string type)
+bool SymbolTable::insert(std::string name, std::string type)
 {
     return currentTab->insert(name, type);
 }
@@ -40,13 +40,13 @@ bool Table::find(std::string name)
     return parent->find(name);
 }
 
-int Table::insert(std::string name, std::string type)
+bool Table::insert(std::string name, std::string type)
 {
     if (table.find(name) != table.end())
-        return -1;
+        return false;
      else {
         table[name] = type;
-        return 0;
+        true;
      }
 }
 // 使用者需保证name在符号表中存在

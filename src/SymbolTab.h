@@ -10,7 +10,7 @@ namespace xcool {
     class Table {
         friend SymbolTable;
         public:
-            int insert(std::string , std::string);
+            bool insert(std::string , std::string);
             bool find(std::string);
             std::string get_type(std::string);
         private:
@@ -21,7 +21,7 @@ namespace xcool {
         public:
             void enter_scope();
             void exit_scope();
-            int insert(std::string , std::string);
+            bool insert(std::string , std::string);
             bool find(std::string);
             std::string get_type(std::string);
         private:

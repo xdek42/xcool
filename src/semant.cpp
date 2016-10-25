@@ -1,14 +1,157 @@
 #include "semant.h"
 #include "error.h"
 #include "auxiliary.h"
+#include "AstTree.h"
 #include <queue>
+#include "SymbolTab.h"
 
 using xcool::ast::Program;
 using xcool::InherGraph;
 using xcool::SemantChecker;
-using xcool::ast::Method;
-using xcool::ast::Class;
-using xcool::ast::Formal;
+using xcool::semant_error;
+using namespace xcool::ast;
+namespace {
+    xcool::SymbolTable symbol_table;
+    class SemantVisitor : public ExprVisitor {
+        public:
+            ~SemantVisitor() {}
+            virtual void visit(AssExpr &) override;
+            virtual void visit(UnaryExpr &) override;
+            virtual void visit(DisExpr &) override;
+            virtual void visit(BlockExpr &) override;
+            virtual void visit(IntExpr &) override;
+            virtual void visit(BoolExpr &) override;
+            virtual void visit(StrExpr &) override;
+            virtual void visit(LetExpr &) override;
+            virtual void visit(NewExpr &) override;
+            virtual void visit(IdExpr &) override;
+            virtual void visit(WhileExpr &) override;
+            virtual void visit(IfExpr &) override;
+            virtual void visit(BinExpr &) override;
+            virtual void visit(CaseExpr &) override;
+    };
+    SemantVisitor semant_checker;
+    void SemantVisitor::visit(AssExpr &expr)
+    {
+        std::string left_type = symbol_table.get_type(expr.name);
+        if (left_type == "") 
+            throw semant_error(expr.position, "undefine name: " + expr.name);
+        expr.value->accept_visitor(semant_checker);
+        std::string right_type = expr.value->static_type;
+        if (isvalid_assign(left_type, right_type)) {
+            std::cout << left_type << " <- " << right_type << std::endl;
+            throw semant_error(expr.position, "Assign expression occur type conflict");
+        }
+    expr.static_type = left_type; 
+    }
+
+    void SemantVisitor::visit(UnaryExpr &expr)
+    {
+        expr.body->accept_visitor(semant_checker);
+        expr.static_type = expr.body->static_type;
+    }
+
+    void SemantVisitor::visit(DisExpr &expr)
+    {
+        if (expr.object) {
+            expr.object->accept_visitor(semant_checker);
+        }
+        for (auto &x : expr.argument_list) 
+            x->accept_visitor(semant_checker);
+        std::string ob_type;
+        if (expr.type != "")
+            ob_type = expr.type;
+        else
+            ob_type = expr.object->static_type;
+        expr.static_type = get_return_type(expr.position, ob_type, expr.method_name);
+        if (expr.static_type == "SELF_TYPE") 
+            expr.static_type = symbol_table.get_type("self");
+    }
+    void SemantVisitor::visit(BlockExpr &expr)
+    {
+        for (auto &e : expr.expr_list)
+            e->accept_visitor(semant_checker);
+        expr.static_type = expr.expr_list[expr.expr_list.size() - 1]->static_type;
+    }
+
+    void SemantVisitor::visit(IntExpr &expr)
+    {
+        expr.static_type = "Int";
+    }
+    void SemantVisitor::visit(BoolExpr &expr)
+    {
+        expr.static_type = "Bool";
+    }
+    void SemantVisitor::visit(StrExpr &expr)
+    {
+        expr.static_type = "String";
+    }
+    void SemantVisitor::visit(LetExpr &expr)
+    {
+        symbol_table.enter_scope();
+        for (auto &attr : expr.var_list) {
+            symbol_table.insert(attr->name, attr->type);
+            if (attr->initial)
+                attr->initial->accept_visitor(semant_checker);
+        }
+        expr.expr->accept_visitor(semant_checker);
+        expr.static_type = expr.expr->static_type;
+        symbol_table.exit_scope();
+    }
+
+    void SemantVisitor::visit(NewExpr &expr)
+    {
+        expr.static_type = expr.type;
+    } 
+
+    void SemantVisitor::visit(IdExpr &expr)
+    {
+        std::string type = symbol_table.get_type(expr.name);
+        if (type == "")
+            throw semant_error(expr.position, "undefined name: " + expr.name);
+        expr.static_type = type;
+    }
+
+    void SemantVisitor::visit(WhileExpr &expr)
+    {
+        expr.condition->accept_visitor(semant_checker);
+        expr.body->accept_visitor(semant_checker);
+        expr.static_type = "Object";
+    }
+
+    void SemantVisitor::visit(IfExpr &expr)
+    {
+        expr.condition->accept_visitor(semant_checker);
+        expr.then_body->accept_visitor(semant_checker);
+        expr.else_body->accept_visitor(semant_checker);
+        std::string then_type = expr.then_body->static_type;
+        std::string else_type = expr.else_body->static_type;
+        expr.static_type = "Undetermined";
+    }
+
+    void SemantVisitor::visit(BinExpr &expr)
+    {
+        expr.left->accept_visitor(semant_checker);
+        expr.right->accept_visitor(semant_checker);
+        std::string left_type = expr.left->static_type;
+        std::string right_type = expr.right->static_type;
+        if (left_type != right_type)
+            throw semant_error(expr.position, "type confict");
+        expr.static_type = left_type;
+    }
+
+    void SemantVisitor::visit(CaseExpr &expr)
+    {
+        expr.value->accept_visitor(semant_checker);
+        for (auto &branch : expr.branch_list) {
+            symbol_table.enter_scope();
+            symbol_table.insert(branch->name, branch->type);
+            branch->body->accept_visitor(semant_checker);
+            symbol_table.exit_scope();
+        }
+        expr.static_type = "Undetermined";
+}
+}
 
 //安装基本类
 void SemantChecker::install_base_class(std::shared_ptr<InherGraph> root) 
@@ -102,7 +245,7 @@ void SemantChecker::install_base_class(std::shared_ptr<InherGraph> root)
 }
 
 //在inherGraph中查找某个类节点
-std::shared_ptr<InherGraph> SemantChecker::find_node(std::shared_ptr<InherGraph> root, std::string name)
+std::shared_ptr<InherGraph> InherGraph::find_node(std::shared_ptr<InherGraph> root, std::string name)
 {
     if (root->node->name == name)
         return root;
@@ -116,7 +259,7 @@ std::shared_ptr<InherGraph> SemantChecker::find_node(std::shared_ptr<InherGraph>
     return nullptr;
 }
 //构建类关系继承图
-std::shared_ptr<InherGraph> SemantChecker::buildInherGraph(Program &program)
+std::shared_ptr<InherGraph> SemantChecker::build_graph(Program &program)
 {
     std::shared_ptr<InherGraph> root = std::make_shared<InherGraph>();
     install_base_class(root);
@@ -128,7 +271,7 @@ std::shared_ptr<InherGraph> SemantChecker::buildInherGraph(Program &program)
             root->son_list.push_back(son);
         }
         else {
-            std::shared_ptr<InherGraph> parent_node = find_node(root, cls->parent);
+            std::shared_ptr<InherGraph> parent_node = root->find_node(root, cls->parent);
             if(!parent_node)
                 throw semant_error(cls->position, "undefined parent class" + cls->parent);
             son->node = std::move(cls);
@@ -144,7 +287,7 @@ void SemantChecker::checkCyclic(std::shared_ptr<InherGraph> root)
 {
 }
 
-void SemantChecker::printGraph(std::shared_ptr<InherGraph> root)
+void InherGraph::print_graph(std::shared_ptr<InherGraph> root)
 {
     std::queue<std::shared_ptr<InherGraph>> que;
     que.push(root);
@@ -164,4 +307,36 @@ void SemantChecker::printGraph(std::shared_ptr<InherGraph> root)
         }
         que.pop();
     }
+}
+
+void Semant::semant_check(std::shared_ptr<InherGraph> root)
+{
+    symbol_table.enter_scope();
+    symbol_table.insert("self", root->node->name);
+    for (auto &attr : root->node->attribute_list) {
+        if (!symbol_table.insert(attr->name, attr->type))
+            throw semant_error(attr->position, "redefined name: " + attr->name);
+        if (attr->initial)
+            attr->initial->accept_visitor(semant_checker);
+    }
+    for (auto &method : root->node->method_list) {
+        symbol_table.enter_scope();
+        for (auto &formal : method->formal_list) {
+            if (!symbol_table.insert(formal->name, formal->type)) 
+                throw semant_error(formal->position, "redefined name: " formal->name);
+        }
+        if (method->body) {
+            method->body->accept_visitor(semant_checker);
+            std::string method_type = method->type;
+            if (method_type == "SELF_TYPE")
+                method_type = symbol_table.get_type("self");
+            if (!isvalid_assign(method_type, method->body->static_type))
+                throw semant_error(method->position, "method return type conflict");
+        }
+        symbol_table.exit_scope();
+    }
+    for (auto &cls : root->son_list) {
+        semant_check(cls);
+    }
+    symbol_table.exit_scope();
 }
