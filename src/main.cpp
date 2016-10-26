@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
         //semant check
         xcool::InherTree cool_program;
         xcool::build_tree(cool_program, program);
+        cool_program.print_tree();
         xcool::semant_check(cool_program);
     }
     catch (xcool::token_error err) {
