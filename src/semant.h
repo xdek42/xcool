@@ -4,31 +4,25 @@
 #include <memory>
 
 namespace xcool {
-   class SemantChecker;
     //the inheritance graph
-    class InherGraph {
-        friend SemantChecker;
-        public:
-            static std::shared_ptr<InherGraph> find_node(std::shared_ptr<InherGraph>, std::string);
-            static void print_graph(std::shared_ptr<InherGraph> root);
+    class InherTree;
+    void build_tree(InherTree &, xcool::ast::Program &);
+    void semant_check(InherTree &);
+    class TreeNode {
+        friend InherTree;
         private:
-            //the index of class saved in this node
+            std::shared_ptr<TreeNode> parent;
+            std::vector<std::shared_ptr<TreeNode>> son_list;
             std::unique_ptr<xcool::ast::Class> node;
-            std::shared_ptr<InherGraph> parent;
-            std::vector<std::shared_ptr<InherGraph>> son_list;
     };
-    
-    // the semant checker
-    class SemantChecker {
+    class InherTree {
+        friend void build_tree(InherTree &, xcool::ast::Program &);
         public:
-            void install_base_class(std::shared_ptr<InherGraph>);
-            std::shared_ptr<InherGraph> build_graph(xcool::ast::Program &);
-            void checkCyclic(std::shared_ptr<InherGraph> root);
-            void semant_check(std::shared_ptr<InherGraph>);
-
+            std::shared_ptr<TreeNode> find_node(std::string name);
+        private:
+            std::shared_ptr<TreeNode> root;
     };
-}
-
+};
 
 
 
