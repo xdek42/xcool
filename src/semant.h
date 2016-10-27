@@ -16,10 +16,12 @@ namespace xcool {
     };
     class InherTree {
         friend void build_tree(InherTree &, xcool::ast::Program &);
+        friend void semant_check(InherTree &);
         public:
             void print_tree();
             std::shared_ptr<TreeNode> find_node(std::string name);
             void set_root(std::shared_ptr<TreeNode> r) {root = r;}
+            bool is_ancestor(std::string, std::string);
         private:
             std::shared_ptr<TreeNode> root;
     };

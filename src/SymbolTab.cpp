@@ -46,7 +46,7 @@ bool Table::insert(std::string name, std::string type)
         return false;
      else {
         table[name] = type;
-        true;
+        return true;
      }
 }
 // 使用者需保证name在符号表中存在
