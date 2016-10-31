@@ -30,6 +30,7 @@ SymbolTab.o: SymbolTab.h SymbolTab.cpp
 semant.h: AstTree.h SymbolTab.h
 semant.o: semant.h error.h semant.cpp auxiliary.h 
 	g++ semant.cpp -c -std=c++11
+	
 clean:
 	rm *.o xcool
 
