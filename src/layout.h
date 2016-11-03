@@ -1,5 +1,6 @@
-#ifndef CODEGEN_H
-#define CODEGEN_H
+#ifndef LAYOUT_H
+#define LAYOUT_H
+
 #include "semant.h"
 #include <string>
 #include <map>
