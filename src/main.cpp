@@ -5,7 +5,7 @@
 #include <fstream>
 #include "error.h"
 #include "semant.h"
-#include "codegen.h"
+#include "layout.h"
 
 void print_usage()
 {
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         xcool::build_tree(cool_program, program);
         cool_program.print_tree();
         xcool::semant_check(cool_program);
-        //codegen
+        //layout
         std::vector<std::shared_ptr<xcool::Layout>> layouts;
         make_layout(cool_program, layouts);
         for (auto lay : layouts) {
