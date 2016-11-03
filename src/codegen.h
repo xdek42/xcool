@@ -3,22 +3,28 @@
 #include "semant.h"
 #include <string>
 #include <map>
+#include <memory>
+#include <vector>
 
 namespace xcool {
-    class ClassLayout {
+    // the class layout in memory
+    class DisTable;
+    class Layout {
         public:
-            int class_tag;
-            int object_size;
-            int dispatch_ptr;
-            std::vector<std::string> attr_name;
-            std::vector<int> attr_value;
+            std::string name;
+            int length;
+            std::shared_ptr<DisTable> dis_table;
+            std::map<std::string, int> attr_table;
     };
-
+    // the DisTable of class
     class DisTable {
         public:
-            std::vector<std::string> fun_name;
-            std::vector<int> fun_addr;
+            std::string name;
+            std::vector<std::string> fun_table;
     };
+    //build layout
+    void make_layout(InherTree &inher_tree, std::vector<std::shared_ptr<Layout>> &layouts);
 }
+
 
 #endif

@@ -22,6 +22,7 @@ namespace xcool {
             std::shared_ptr<TreeNode> find_node(std::string name);
             void set_root(std::shared_ptr<TreeNode> r) {root = r;}
             bool is_ancestor(std::string, std::string);
+            std::shared_ptr<TreeNode> get_root() {return root;}
         private:
             std::shared_ptr<TreeNode> root;
     };
