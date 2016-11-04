@@ -6,6 +6,7 @@
 #include "error.h"
 #include "semant.h"
 #include "layout.h"
+#include "codegen.h"
 
 void print_usage()
 {
@@ -34,15 +35,7 @@ int main(int argc, char *argv[])
         //layout
         std::vector<std::shared_ptr<xcool::Layout>> layouts;
         make_layout(cool_program, layouts);
-        for (auto lay : layouts) {
-            out_file << "class_name: " << lay->name << std::endl;
-            out_file << "class_length " << lay->length << std::endl;
-            out_file << lay->name + "_dispatch_table:" << std::endl;
-            for (auto method : lay->dis_table->fun_table) {
-                out_file << "    .long " << method << std::endl;
-            }
-            out_file << std::endl;
-        }
+        emit_code(layouts, cool_program, out_file);
     }
     catch (xcool::token_error err) {
         std::cout << "lexer error: " << err.what() << std::endl;
