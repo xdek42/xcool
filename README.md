@@ -9,5 +9,21 @@ cool语言虽然小，但其包含许多现代语言的特性如
 > * 垃圾回收
 
 [cool语言手册](http://web.stanford.edu/class/cs143/materials/cool-manual.pdf) 
+
 ### 项目当前进度
-初步完成语义分析，下一步实现代码生成。
+完善代码生成
+
+### 使用
+cd xcool/src
+
+make
+
+./xcool ../test/helloworld.cool ../test/helloworld.s
+
+cd xcool/test
+
+as --32 helloworld.s -o helloworld.o
+
+ld -m elf_i386 helloworld.o -dynamic-linker /lib/ld-linux.so.2 -lc
+
+./a.out
