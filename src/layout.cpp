@@ -76,7 +76,7 @@ namespace {
         std::string ret;
         int flag = 0;
         for (int i = 0; i < name.size(); i++) {
-            if (name[i] == '_') {
+            if (name[i] == '_' && flag == 0) {
                 flag = 1;
                 continue;
             }

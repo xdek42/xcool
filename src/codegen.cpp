@@ -18,10 +18,25 @@ using xcool::InherTree;
 using xcool::SymbolTable;
 
 vector<string> data_segment;
-vector<string> class_layout_segment;
+vector<shared_ptr<Layout>> class_layouts;
 vector<string> text_segment;
 
 namespace {
+    std::string get_method_name(const std::string &name)
+    {
+        std::string ret;
+        int flag = 0;
+        for (int i = 0; i < name.size(); i++) {
+            if (name[i] == '_' && flag == 0) {
+                flag = 1;
+                continue;
+            }
+            if (flag) {
+                ret = ret + name[i];
+            }
+        }
+        return ret;
+    }
     SymbolTable symbol_table;
     class CodeGenVisitor : public ExprVisitor {
         public:
@@ -47,16 +62,31 @@ namespace {
     void CodeGenVisitor::visit(AssExpr &) {}
     void CodeGenVisitor::visit(UnaryExpr &) {}
     void CodeGenVisitor::visit(DisExpr &expr)
-    {
+    {   
         for (int i = expr.argument_list.size() - 1; i >= 0; i--) {
             expr.argument_list[i]->accept_visitor(code_generator);
         }
-        if (expr.method_name == "out_string") {
-            text_segment.push_back("    movl $Main_dispatch_table, %ebx");
-            text_segment.push_back("    addl $12, %ebx");
-            text_segment.push_back("    movl (%ebx), %eax");
-            text_segment.push_back("    call *%eax");
+        //object is self
+        expr.object->accept_visitor(code_generator);
+
+        int offset = -1;
+        for (const auto &layout : class_layouts) {
+            if (layout->name == expr.type) {
+                for (const auto &fun : layout->dis_table->fun_table) {
+                    offset++;
+                    if (get_method_name(fun) == expr.method_name) {
+                        break;
+                    }
+                }
+                break;
+            }
         }
+        text_segment.push_back("    movl 8(%ebp), %eax");
+        text_segment.push_back("    movl (%eax), %ebx");
+        text_segment.push_back("    addl $" + int2str(offset*4) + ", %ebx");
+        text_segment.push_back("    movl (%ebx), %eax");
+        text_segment.push_back("    call *%eax");
+        text_segment.push_back("    addl $" + int2str((expr.argument_list.size() + 1)*4) + ", %esp");
     }
     void CodeGenVisitor::visit(IntExpr &) {}
     void CodeGenVisitor::visit(BoolExpr &) {}
@@ -66,7 +96,12 @@ namespace {
         data_segment.push_back("    .asciz \"" + expr.value + "\"");
         text_segment.push_back("    pushl $CONST_STR1");
     }
-    void CodeGenVisitor::visit(IdExpr &) {}
+    void CodeGenVisitor::visit(IdExpr &expr) 
+    {
+        std::string id_pos = symbol_table.get_type(expr.name);
+        text_segment.push_back("    lea " + id_pos + ", %eax");
+        text_segment.push_back("    pushl %eax");
+    }
     void CodeGenVisitor::visit(WhileExpr &) {}
     void CodeGenVisitor::visit(IfExpr &) {}
     void CodeGenVisitor::visit(BinExpr &) {}
@@ -94,7 +129,7 @@ namespace {
         for (int i = method->formal_list.size() - 1; i >= 0; i--) {
             symbol_table.insert(method->formal_list[i]->name, int2str(4*i + 4) + "(%ebp)");
         }
-        symbol_table.insert("self", "4(%ebp)");
+        symbol_table.insert("self", "8(%ebp)");
         method->body->accept_visitor(code_generator);
         //返回
         symbol_table.exit_scope();
@@ -102,16 +137,54 @@ namespace {
         text_segment.push_back("    popl %ebp");
         text_segment.push_back("    ret");
     }
+    void emit_basic_class_code()
+    {
+        //emit out_string code:
+        text_segment.push_back(".global IO_out_string");
+        text_segment.push_back(".type IO_out_string, @function");
+        text_segment.push_back("IO_out_string:");
+        text_segment.push_back("    pushl %ebp");
+        text_segment.push_back("    movl %esp, %ebp");
+        text_segment.push_back("    pushl 12(%ebp)");
+        text_segment.push_back("    call puts");
+        text_segment.push_back("    addl $8, %esp");
+        text_segment.push_back("    movl %ebp, %esp");
+        text_segment.push_back("    popl %ebp");
+        text_segment.push_back("    ret");
+        //emit Object_abort
+        text_segment.push_back(".global Object_abort");
+        text_segment.push_back(".type Object_abort, @function");
+        text_segment.push_back("Object_abort:");
+        text_segment.push_back("    ret");
+        //emit Object_type_name
+        text_segment.push_back(".global Object_type_name");
+        text_segment.push_back(".type Object_type_name, @function");
+        text_segment.push_back("Object_type_name:");
+        text_segment.push_back("    ret");
+        //emit Object_copy
+        text_segment.push_back(".global Object_copy");
+        text_segment.push_back(".type Object_copy, @function");
+        text_segment.push_back("Object_copy:");
+        text_segment.push_back("    ret");
+        //emit IO_out_int
+        text_segment.push_back(".global IO_out_int");
+        text_segment.push_back(".type IO_out_int, @function");
+        text_segment.push_back("IO_out_int:");
+        text_segment.push_back("    ret");
+        //emit IO_in_string
+        text_segment.push_back(".global IO_in_string");
+        text_segment.push_back(".type IO_in_string, @function");
+        text_segment.push_back("IO_in_string:");
+        text_segment.push_back("    ret");
+        //emit IO_in_int
+        text_segment.push_back(".global IO_in_int");
+        text_segment.push_back(".type IO_in_int, @function");
+        text_segment.push_back("IO_in_int:");
+        text_segment.push_back("    ret");
+    }
     void emit_class_code(shared_ptr<Layout> layout, shared_ptr<TreeNode> node)
     {
         if (is_basic_class(node->node->name)) {
-            for (auto &method : node->node->method_list) {
-                string method_name = node->node->name + "_" + method->name;
-                text_segment.push_back(".global " + method_name);
-                text_segment.push_back(".type " + method_name + ", @function");
-                text_segment.push_back(method_name + ":");
-                text_segment.push_back("    ret\n");
-            }
             return;
         };
         for(auto &method : node->node->method_list) {
@@ -133,7 +206,9 @@ namespace {
 
 void xcool::emit_code(vector<shared_ptr<Layout>> &layouts, xcool::InherTree &cool_program, std::ofstream &out_file)
 {
+    class_layouts = layouts;
     shared_ptr<TreeNode> root = cool_program.get_root();
+    emit_basic_class_code();
     _emit_code(layouts, root);
     //输出数据段
     out_file << ".section .data" << std::endl;
@@ -156,7 +231,10 @@ void xcool::emit_code(vector<shared_ptr<Layout>> &layouts, xcool::InherTree &coo
     out_file << ".global _start" << std::endl;
     out_file << "_start:" << std::endl;
     out_file << "   pushl $Main_dispatch_table" << std::endl;
+    out_file << "   lea (%esp), %eax" << std::endl;
+    out_file << "   pushl %eax" << std::endl;
     out_file << "   call Main_main" << std::endl;
+    out_file << "   addl $4, %eax" << std::endl;
     out_file << "   movl $1, %eax" << std::endl;
     out_file << "   movl $0, %ebx" << std::endl;
     out_file << "   int $0x80" << std::endl;

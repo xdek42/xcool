@@ -231,8 +231,10 @@ namespace {
         std::string ob_type;
         if (expr.type != "")
             ob_type = expr.type;
-        else
+        else{
             ob_type = expr.object->static_type;
+            expr.type = symbol_table.get_type("self");
+        }
         expr.static_type = get_return_type(ob_type, expr.method_name);
         if (expr.static_type == "") {
             std::cout << "ob_type: " << ob_type << " method_name: " << expr.method_name << std::endl;
