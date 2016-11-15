@@ -15,7 +15,8 @@ namespace xcool {
             std::string name;
             int length;
             std::shared_ptr<DisTable> dis_table;
-            std::map<std::string, int> attr_table;
+            std::vector<std::string> attr;
+            std::vector<int> offset;
     };
     // the DisTable of class
     class DisTable {

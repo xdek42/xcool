@@ -88,8 +88,11 @@ namespace {
         text_segment.push_back("    call *%eax");
         text_segment.push_back("    addl $" + int2str((expr.argument_list.size() + 1)*4) + ", %esp");
     }
-    void CodeGenVisitor::visit(IntExpr &) {}
-    void CodeGenVisitor::visit(BoolExpr &) {}
+    void CodeGenVisitor::visit(IntExpr &expr) 
+    {
+        text_segment.push_back("    pushl $" + expr.value);
+    }
+    void CodeGenVisitor::visit(BoolExpr &)  {}
     void CodeGenVisitor::visit(StrExpr &expr) 
     {
         data_segment.push_back("CONST_STR1:");
@@ -98,13 +101,28 @@ namespace {
     }
     void CodeGenVisitor::visit(IdExpr &expr) 
     {
-        std::string id_pos = symbol_table.get_type(expr.name);
-        text_segment.push_back("    lea " + id_pos + ", %eax");
+        std::string offset = symbol_table.get_type(expr.name);
+        text_segment.push_back("    lea 8(%ebp)" +  + ", %eax");
+        text_segment.push_back("    addl $" + offset + ", %eax");
         text_segment.push_back("    pushl %eax");
     }
     void CodeGenVisitor::visit(WhileExpr &) {}
     void CodeGenVisitor::visit(IfExpr &) {}
-    void CodeGenVisitor::visit(BinExpr &) {}
+    void CodeGenVisitor::visit(BinExpr &expr) 
+    {
+        switch (expr.op) {
+            case '+' :
+                /*
+                text_segment.push_back("    popl %eax");
+                text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    addl %eax, %ebx");
+                text_segment.push_back("    pushl %ebx");
+                */
+                break;
+            default:
+                break;
+        }
+    }
     void CodeGenVisitor::visit(CaseExpr &) {}
 
     bool is_basic_class(std::string name)
@@ -117,6 +135,9 @@ namespace {
     void emit_method_code(shared_ptr<Layout> layout, std::unique_ptr<Method> &method) 
     {
         symbol_table.enter_scope();
+        for (int i  = 0; i < layout->attr.size(); i++) {
+            symbol_table.insert(layout->attr[i], int2str(layout->offset[i]));
+        }
         string method_name = layout->name + "_" + method->name;
         //函数声明
         text_segment.push_back(".global " + method_name);
@@ -129,7 +150,7 @@ namespace {
         for (int i = method->formal_list.size() - 1; i >= 0; i--) {
             symbol_table.insert(method->formal_list[i]->name, int2str(4*i + 4) + "(%ebp)");
         }
-        symbol_table.insert("self", "8(%ebp)");
+        symbol_table.insert("self", "0");
         method->body->accept_visitor(code_generator);
         //返回
         symbol_table.exit_scope();
