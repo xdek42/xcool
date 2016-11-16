@@ -56,10 +56,24 @@ namespace {
             virtual void visit(NewExpr &) override;
             virtual void visit(BlockExpr &) override;
     } code_generator;
-    void CodeGenVisitor::visit(BlockExpr &) {}
+    void CodeGenVisitor::visit(BlockExpr &expr) 
+    {
+        for (auto &e : expr.expr_list) {
+            e->accept_visitor(code_generator);
+        }
+    }
     void CodeGenVisitor::visit(NewExpr &) {}
     void CodeGenVisitor::visit(LetExpr &) {}
-    void CodeGenVisitor::visit(AssExpr &) {}
+    void CodeGenVisitor::visit(AssExpr &expr) 
+    {
+        expr.value->accept_visitor(code_generator);
+        std::string offset = symbol_table.get_type(expr.name);
+        text_segment.push_back("    movl 8(%ebp), %eax");
+        text_segment.push_back("    addl $" + offset + ", %eax");
+        text_segment.push_back("    addl $4, %eax");
+        text_segment.push_back("    popl %ebx");
+        text_segment.push_back("    movl %ebx, (%eax)");
+    }
     void CodeGenVisitor::visit(UnaryExpr &) {}
     void CodeGenVisitor::visit(DisExpr &expr)
     {   
@@ -81,7 +95,7 @@ namespace {
                 break;
             }
         }
-        text_segment.push_back("    movl 8(%ebp), %eax");
+        text_segment.push_back("    movl (%esp), %eax");
         text_segment.push_back("    movl (%eax), %ebx");
         text_segment.push_back("    addl $" + int2str(offset*4) + ", %ebx");
         text_segment.push_back("    movl (%ebx), %eax");
@@ -102,7 +116,7 @@ namespace {
     void CodeGenVisitor::visit(IdExpr &expr) 
     {
         std::string offset = symbol_table.get_type(expr.name);
-        text_segment.push_back("    lea 8(%ebp)" +  + ", %eax");
+        text_segment.push_back("    movl 8(%ebp), %eax");
         text_segment.push_back("    addl $" + offset + ", %eax");
         text_segment.push_back("    pushl %eax");
     }
@@ -112,12 +126,16 @@ namespace {
     {
         switch (expr.op) {
             case '+' :
-                /*
+                expr.left->accept_visitor(code_generator);
+                expr.right->accept_visitor(code_generator);
                 text_segment.push_back("    popl %eax");
                 text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    addl $4, %eax");
+                text_segment.push_back("    addl $4, %ebx");
+                text_segment.push_back("    movl (%eax), %eax");
+                text_segment.push_back("    movl (%ebx), %ebx");
                 text_segment.push_back("    addl %eax, %ebx");
                 text_segment.push_back("    pushl %ebx");
-                */
                 break;
             default:
                 break;
@@ -188,9 +206,24 @@ namespace {
         text_segment.push_back("Object_copy:");
         text_segment.push_back("    ret");
         //emit IO_out_int
+        
+        data_segment.push_back("OUT_INT:");
+        data_segment.push_back("    .asciz \"%d\\n\"");
+
         text_segment.push_back(".global IO_out_int");
         text_segment.push_back(".type IO_out_int, @function");
         text_segment.push_back("IO_out_int:");
+
+        text_segment.push_back("    pushl %ebp");
+        text_segment.push_back("    movl %esp, %ebp");
+        text_segment.push_back("    movl 12(%ebp), %eax");
+        text_segment.push_back("    addl $4, %eax");
+        text_segment.push_back("    pushl (%eax)");
+        text_segment.push_back("    pushl $OUT_INT");
+        text_segment.push_back("    call printf");
+        text_segment.push_back("    addl $8, %esp");
+        text_segment.push_back("    movl %ebp, %esp");
+        text_segment.push_back("    popl %ebp");
         text_segment.push_back("    ret");
         //emit IO_in_string
         text_segment.push_back(".global IO_in_string");
@@ -251,6 +284,14 @@ void xcool::emit_code(vector<shared_ptr<Layout>> &layouts, xcool::InherTree &coo
     out_file << std::endl;
     out_file << ".global _start" << std::endl;
     out_file << "_start:" << std::endl;
+    //temp
+    out_file << "   pushl $0" << std::endl;
+    out_file << "   pushl $Int_dispatch_table" << std::endl;
+    out_file << "   pushl $2" << std::endl;
+    out_file << "   pushl $Int_dispatch_table" << std::endl;
+    out_file << "   pushl $1" << std::endl;
+    out_file << "   pushl $Int_dispatch_table" << std::endl;
+
     out_file << "   pushl $Main_dispatch_table" << std::endl;
     out_file << "   lea (%esp), %eax" << std::endl;
     out_file << "   pushl %eax" << std::endl;

@@ -98,15 +98,15 @@ namespace {
            class_layout->length = parent_layout->length;
            for (int i = 0; i < parent_layout->attr.size(); i++) {
                class_layout->attr.push_back(parent_layout->attr[i]);
-               class_layout->offset->push_back(parent_layout->offset[i]);
+               class_layout->offset.push_back(parent_layout->offset[i]);
            }
            int current_offset = parent_layout->length;
            for (auto &attr : node->node->attribute_list) {
-               shared_ptr<layout> attr_layout = find_layout(attr->type, layouts);
+               shared_ptr<Layout> attr_layout = find_layout(attr->type, layouts);
                class_layout->attr.push_back(attr->name);
                class_layout->offset.push_back(current_offset);
                current_offset += attr_layout->length;
-               length += attr_layout->length;
+               class_layout->length += attr_layout->length;
            }
            //构建dis_table;
            shared_ptr<DisTable> class_distable = make_shared<DisTable>();

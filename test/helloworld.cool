@@ -1,7 +1,7 @@
 class Main inherits IO {
-   a : int <- 1;
-   b : int <-2;
-   c : int;
+   a : Int <- 1;
+   b : Int <-2;
+   c : Int;
    main(): SELF_TYPE { {
 	out_string("Hello, World.");
     c <- a + b;

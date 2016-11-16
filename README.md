@@ -14,13 +14,13 @@ cool语言虽然小，但其包含许多现代语言的特性如
 完善代码生成
 
 ### 使用
-cd xcool/src
+cd ./xcool/src
 
 make
 
 ./xcool ../test/helloworld.cool ../test/helloworld.s
 
-cd xcool/test
+cd ../test
 
 as --32 helloworld.s -o helloworld.o
 
