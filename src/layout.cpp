@@ -45,6 +45,8 @@ namespace {
             int_distable->fun_table.push_back(method);
         int_layout->dis_table = int_distable;
         layouts.push_back(int_layout);
+        //make bool layout
+
     }
     bool is_basic_class(std::string name)
     {
