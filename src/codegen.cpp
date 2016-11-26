@@ -67,7 +67,7 @@ namespace {
     void CodeGenVisitor::visit(AssExpr &expr) 
     {
         expr.value->accept_visitor(code_generator);
-        std::string offset = symbol_table.get_type(expr.name);
+        std::string offset = symbol_table.get_value(expr.name);
         text_segment.push_back("    movl 8(%ebp), %eax");
         text_segment.push_back("    addl $" + offset + ", %eax");
         text_segment.push_back("    addl $4, %eax");
@@ -115,7 +115,7 @@ namespace {
     }
     void CodeGenVisitor::visit(IdExpr &expr) 
     {
-        std::string offset = symbol_table.get_type(expr.name);
+        std::string offset = symbol_table.get_value(expr.name);
         text_segment.push_back("    movl 8(%ebp), %eax");
         text_segment.push_back("    addl $" + offset + ", %eax");
         text_segment.push_back("    pushl %eax");

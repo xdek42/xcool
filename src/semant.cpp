@@ -1,20 +1,27 @@
 #include "semant.h"
-#include "error.h"
-#include "auxiliary.h"
 #include "AstTree.h"
-#include <queue>
+#include "auxiliary.h"
+#include "error.h"
 #include "SymbolTab.h"
+#include <vector>
+#include <string>
+#include <memory>
+#include <queue>
 
-using xcool::ast::Program;
-using xcool::semant_error;
-using xcool::TreeNode;
-using xcool::InherTree;
+using xcool::Layout;
 using namespace xcool::ast;
+using std::unique_ptr;
+using std::string;
+using std::vector;
+using std::shared_ptr;
+using xcool::semant_error;
 
 namespace {
+    class TreeNode;
+    shared_ptr<TreeNode> tree_root;
+    //define symbol table used for semant check
     xcool::SymbolTable symbol_table;
-    InherTree cool_program;
-    std::string current_class;
+    //define the semant checker for each expression
     class SemantVisitor : public ExprVisitor {
         public:
             ~SemantVisitor() {}
@@ -33,369 +40,245 @@ namespace {
             virtual void visit(BinExpr &) override;
             virtual void visit(CaseExpr &) override;
     } semant_checker;
-    
-    std::string get_return_type(std::string object, std::string method)
+
+    void SemantVisitor::visit(AssExpr &expr) {}
+    void SemantVisitor::visit(UnaryExpr &expr) {}
+    void SemantVisitor::visit(DisExpr &expr) {}
+    void SemantVisitor::visit(BlockExpr &expr) {}
+    void SemantVisitor::visit(IntExpr &expr) {}
+    void SemantVisitor::visit(BoolExpr &expr) {}
+    void SemantVisitor::visit(StrExpr &expr) {}
+    void SemantVisitor::visit(LetExpr &expr) {}
+    void SemantVisitor::visit(NewExpr &expr) {}
+    void SemantVisitor::visit(IdExpr &expr) {}
+    void SemantVisitor::visit(WhileExpr &expr) {}
+    void SemantVisitor::visit(IfExpr &expr) {}
+    void SemantVisitor::visit(BinExpr &expr) {}
+    void SemantVisitor::visit(CaseExpr &expr) {}
+
+    class TreeNode {
+        public:
+            unique_ptr<Class> class_node;
+            vector<shared_ptr<TreeNode>> son_list;
+    };
+    //install some basic class in cool: eg Object, IO, Int
+    void install_basic_class(shared_ptr<TreeNode> root)
     {
-        std::shared_ptr<TreeNode> node = cool_program.find_node(object);
-        if (!node) {
-            return "";
-        }
-        while (node) {
-            for (auto &me : node->node->method_list) {
-                if (me->name == method) {
-                    if (me->type == "SELF_TYPE")
-                        return object;
-                    else
-                        return me->type;
-                }
-            }
-            node = node->parent;
-        }
-        return "";
-    }
-    
-    void install_base_class(std::shared_ptr<TreeNode> root) 
-    {
-        root->parent = nullptr;
-        //安装Object类
-        root->node = make_unique<Class>();
-        root->node->name = "Object";
+        //install Object class
+        root->class_node = make_unique<Class>();
+        root->class_node->name = "Object";
+        //install abort method of Object class
         auto abort = make_unique<Method>();
         abort->type = "Object";
         abort->name = "abort";
-        root->node->method_list.push_back(std::move(abort));
+        root->class_node->method_list.push_back(std::move(abort));
+        //install type_name method of Object class
         auto type_name = make_unique<Method>();
         type_name->type = "String";
         type_name->name = "type_name";
-        root->node->method_list.push_back(std::move(type_name));
+        root->class_node->method_list.push_back(std::move(type_name));
+        //install copy method of Object class
         auto copy = make_unique<Method>();
         copy->type = "SELF_TYPE";
         copy->name = "copy";
-        root->node->method_list.push_back(std::move(copy));
-        //安装IO
+        root->class_node->method_list.push_back(std::move(copy));
+        //install IO class
         std::shared_ptr<TreeNode> son = std::make_shared<TreeNode>();
-        son->node = make_unique<Class>();
-        son->node->name = "IO";
-        // 安装IO类的out_string函数
+        son->class_node = make_unique<Class>();
+        son->class_node->name = "IO";
+        //install out_string method of IO class
         auto out_string = make_unique<Method>();
         out_string->name = "out_string";
         out_string->type = "SELF_TYPE";
         out_string->formal_list.push_back(make_unique<Formal>("x", "string"));
-        son->node->method_list.push_back(std::move(out_string));
-        // 安装IO类的out_int函数
+        son->class_node->method_list.push_back(std::move(out_string));
+        //install out_int method of IO class
         auto out_int = make_unique<Method>();
         out_int->name = "out_int";
         out_int->type = "SELF_TYPE";
         out_int->formal_list.push_back(make_unique<Formal>("x", "Int"));
-        son->node->method_list.push_back(std::move(out_int));
-        //安装IO类in_string函数
+        son->class_node->method_list.push_back(std::move(out_int));
+        //install in_string method of IO class
         auto in_string = make_unique<Method>();
         in_string->name = "in_string";
         in_string->type = "String";
         in_string->formal_list.push_back(make_unique<Formal>("x", "string"));
-        son->node->method_list.push_back(std::move(in_string));
-        //安装IO类in_int函数
+        son->class_node->method_list.push_back(std::move(in_string));
+        //install in_int method of IO class
         auto in_int = make_unique<Method>();
         in_int->name = "in_int";
         in_int->type = "Int";
         in_int->formal_list.push_back(make_unique<Formal>("x", "Int"));
-        son->node->method_list.push_back(std::move(in_int));
+        son->class_node->method_list.push_back(std::move(in_int));
         
-        son->parent = root;
         root->son_list.push_back(son);
 
-        //安装String 
+        //install String class
         son = std::make_shared<TreeNode>();
-        son->node = make_unique<Class>();
-        son->node->name = "String";
+        son->class_node = make_unique<Class>();
+        son->class_node->name = "String";
+        //install length method of String class
         auto length = make_unique<Method>();
         length->type = "Int";
         length->name = "length";
-        son->node->method_list.push_back(std::move(length));
+        son->class_node->method_list.push_back(std::move(length));
+        //install concat method of String class
         auto concat = make_unique<Method>();
         concat->type = "String";
         concat->name = "concat";
         concat->formal_list.push_back(make_unique<Formal>("s", "String"));
-        son->node->method_list.push_back(std::move(concat));
+        son->class_node->method_list.push_back(std::move(concat));
+        //install substr method of String class
         auto substr = make_unique<Method>();
         substr->type = "String";
         substr->name = "substr";
         substr->formal_list.push_back(make_unique<Formal>("i", "Int"));
         substr->formal_list.push_back(make_unique<Formal>("l", "Int"));
-        son->node->method_list.push_back(std::move(substr));
+        son->class_node->method_list.push_back(std::move(substr));
         
-        son->parent = root;
         root->son_list.push_back(son);
 
-        //安装Int
+        //install int class
         son = std::make_shared<TreeNode>();
-        son->node = make_unique<Class>();
-        son->node->name = "Int";
+        son->class_node = make_unique<Class>();
+        son->class_node->name = "Int";
         
-        son->parent = root;
         root->son_list.push_back(son);
         
         //安装Bool
         son = std::make_shared<TreeNode>();
-        son->node = make_unique<Class>();
-        son->node->name = "Bool";
+        son->class_node = make_unique<Class>();
+        son->class_node->name = "Bool";
         
-        son->parent = root;
-        root->son_list.push_back(son); 
+        root->son_list.push_back(son);
     }
-    std::shared_ptr<TreeNode> _find_node(std::shared_ptr<TreeNode> root, std::string name)
+
+    //find node in inhertiance tree
+    std::shared_ptr<TreeNode> find_node(std::shared_ptr<TreeNode> root, std::string name)
     {
-        if (root->node->name == name)
+        if (root->class_node->name == name)
             return root;
         for (const auto & node : root->son_list) {
-            std::shared_ptr<TreeNode> result = _find_node(node, name);
+            std::shared_ptr<TreeNode> result = find_node(node, name);
             if (result)
                 return result;
         }
         return nullptr;
     }
-    bool is_valid_assign(std::string left, std::string right)
+
+    //check assign valid
+    bool is_valid_assign(string left_type, string right_type)
     {
-        if (right == "Undetermined") 
+        auto left_node = find_node(tree_root, left_type);
+        if (left_node == nullptr)
+            return false;
+        if (find_node(left_node, right_type))
             return true;
-        return cool_program.is_ancestor(left, right);
+        return false;
     }
 
-    void check_class(std::shared_ptr<TreeNode> root)
+    //build cool class inheritance graph
+    shared_ptr<TreeNode> build_tree(Program &program)
     {
-        current_class = root->node->name;
+        shared_ptr<TreeNode> root = std::make_shared<TreeNode>();
+        install_basic_class(root);
+        for (auto &cls : program.class_list) {
+            shared_ptr<TreeNode> class_node = std::make_shared<TreeNode>();
+            if ((cls->parent).empty()) {
+                class_node->class_node = std::move(cls);
+                root->son_list.push_back(class_node);
+            }
+            else {
+                shared_ptr<TreeNode> parent_node = find_node(root, cls->parent);
+                if (!parent_node) {
+                    throw semant_error(cls->position, "undefined parent class " + cls->parent);
+                }
+                parent_node->son_list.push_back(class_node);
+                class_node->class_node = std::move(cls);
+            }
+        }
+        return root;
+    }
+
+    //semant check each class in program
+    void _semant_check(shared_ptr<TreeNode> root)
+    {
         symbol_table.enter_scope();
-        symbol_table.insert("self", root->node->name);
+        symbol_table.insert("self", root->class_node->name);
         //check attribute
-        for (auto &attr : root->node->attribute_list) {
-            if (!symbol_table.insert(attr->name, attr->type))
-                throw semant_error(attr->position, "redefined attribute name: " + attr->name);
-            if (attr->initial) {
+        for (auto &attr : root->class_node->attribute_list) {
+            if (!symbol_table.insert(attr->name, attr->type)) {
+                throw semant_error(attr->position, "redefine attribute name: " + attr->name);
+            }
+            if (attr->initial != nullptr) {
                 attr->initial->accept_visitor(semant_checker);
-                //check assign
+                //check assign valid
                 auto right_type = attr->initial->static_type;
-                if (!is_valid_assign(attr->type, right_type)) 
+                auto left_type = attr->type;
+                if (!is_valid_assign(left_type, right_type)) {
                     throw semant_error(attr->position, "invalid assign: " + attr->name);
+                }
             }
         }
         //check method
-        for (auto &method : root->node->method_list) {
+        for (auto &method : root->class_node->method_list) {
             symbol_table.enter_scope();
-            for (auto &formal : method->formal_list) {
-                if (!symbol_table.insert(formal->name, formal->type)) {
-                    throw semant_error(formal->position, "redefined parameter name: " + formal->name );
+            //put method parameter into symbol table
+            for (auto &para : method->formal_list) {
+                if (!symbol_table.insert(para->name, para->type)) {
+                    throw semant_error(para->position, "redefine parameter name: " + para->name);
                 }
             }
-            if (method->body) {
+            //check method body
+            if (method->body != nullptr) {
                 method->body->accept_visitor(semant_checker);
-                std::string method_type = method->type;
-                if (method_type == "SELF_TYPE")
-                    method_type = symbol_table.get_type("self");
-                if (!is_valid_assign(method_type, method->body->static_type))
+                auto static_return_type = method->body->static_type;
+                auto return_type = method->type;
+                if (return_type == "SELF_TYPE")
+                    return_type = symbol_table.get_value("self");
+                if(!is_valid_assign(return_type, static_return_type)) {
                     throw semant_error(method->position, "method return type conflict");
+                }
             }
             symbol_table.exit_scope();
         }
-        for (auto &cls : root->son_list) {
-            check_class(cls);
-        }
+        //do same check for son class
+        for (auto &cls_node : root->son_list)
+            _semant_check(cls_node);
         symbol_table.exit_scope();
     }
-    
-    void SemantVisitor::visit(AssExpr &expr)
+    //print inheritance graph
+    void print_tree(shared_ptr<TreeNode> root)
     {
-        std::string left_type = symbol_table.get_type(expr.name);
-        if (left_type == "") 
-            throw semant_error(expr.position, "undefine name: " + expr.name);
-        expr.value->accept_visitor(semant_checker);
-        std::string right_type = expr.value->static_type;
-        if (!is_valid_assign(left_type, right_type)) {
-            throw semant_error(expr.position, "Assign expression occur type conflict : " + left_type + " <- " + right_type );
+        if (!root)
+            return;
+        std::queue<std::shared_ptr<TreeNode>> que;
+        que.push(root);
+        int count = 0, current_sum = 1, next_sum = 0;
+        while (!que.empty()) {
+            std::shared_ptr<TreeNode> node = que.front();
+            std::cout << node->class_node->name << " ";
+            count++;
+            next_sum += node->son_list.size();
+            for (auto x : node->son_list)
+                que.push(x);
+            if (count == current_sum) {
+                std::cout << std::endl;
+                current_sum = next_sum;
+                next_sum = 0;
+                count = 0;
+            }
+            que.pop();
         }
-        expr.static_type = left_type; 
-    }
-
-    void SemantVisitor::visit(UnaryExpr &expr)
-    {
-        expr.body->accept_visitor(semant_checker);
-        expr.static_type = expr.body->static_type;
-    }
-
-    void SemantVisitor::visit(DisExpr &expr)
-    {
-        if (expr.object) {
-            expr.object->accept_visitor(semant_checker);
-        }
-        for (auto &x : expr.argument_list) 
-            x->accept_visitor(semant_checker);
-        std::string ob_type;
-        if (expr.type != "")
-            ob_type = expr.type;
-        else{
-            ob_type = expr.object->static_type;
-            expr.type = symbol_table.get_type("self");
-        }
-        expr.static_type = get_return_type(ob_type, expr.method_name);
-        if (expr.static_type == "") {
-            std::cout << "ob_type: " << ob_type << " method_name: " << expr.method_name << std::endl;
-            throw semant_error(expr.position, "DisExpr error: unkonw return type");
-        }
-    }
-
-    void SemantVisitor::visit(BlockExpr &expr)
-    {
-        for (auto &e : expr.expr_list)
-            e->accept_visitor(semant_checker);
-        expr.static_type = expr.expr_list[expr.expr_list.size() - 1]->static_type;
-    }
-
-    void SemantVisitor::visit(IntExpr &expr)
-    {
-        expr.static_type = "Int";
-    }
-    void SemantVisitor::visit(BoolExpr &expr)
-    {
-        expr.static_type = "Bool";
-    }
-    void SemantVisitor::visit(StrExpr &expr)
-    {
-        expr.static_type = "String";
-    }
-    void SemantVisitor::visit(LetExpr &expr)
-    {
-        symbol_table.enter_scope();
-        for (auto &attr : expr.var_list) {
-            symbol_table.insert(attr->name, attr->type);
-            if (attr->initial)
-                attr->initial->accept_visitor(semant_checker);
-        }
-        expr.expr->accept_visitor(semant_checker);
-        expr.static_type = expr.expr->static_type;
-        symbol_table.exit_scope();
-    }
-
-    void SemantVisitor::visit(NewExpr &expr)
-    {
-        expr.static_type = expr.type;
-    } 
-
-    void SemantVisitor::visit(IdExpr &expr)
-    {
-        std::string type = symbol_table.get_type(expr.name);
-        if (type == "")
-            throw semant_error(expr.position, "undefined name: " + expr.name);
-        expr.static_type = type;
-    }
-
-    void SemantVisitor::visit(WhileExpr &expr)
-    {
-        expr.condition->accept_visitor(semant_checker);
-        expr.body->accept_visitor(semant_checker);
-        expr.static_type = "Object";
-    }
-
-    void SemantVisitor::visit(IfExpr &expr)
-    {
-        expr.condition->accept_visitor(semant_checker);
-        expr.then_body->accept_visitor(semant_checker);
-        expr.else_body->accept_visitor(semant_checker);
-        std::string then_type = expr.then_body->static_type;
-        std::string else_type = expr.else_body->static_type;
-        expr.static_type = "Undetermined";
-    }
-
-    void SemantVisitor::visit(BinExpr &expr)
-    {
-        expr.left->accept_visitor(semant_checker);
-        expr.right->accept_visitor(semant_checker);
-        std::string left_type = expr.left->static_type;
-        std::string right_type = expr.right->static_type;
-        if (left_type != right_type)
-            throw semant_error(expr.position, "type confict");
-        expr.static_type = left_type;
-    }
-
-    void SemantVisitor::visit(CaseExpr &expr)
-    {
-        expr.value->accept_visitor(semant_checker);
-        for (auto &branch : expr.branch_list) {
-            symbol_table.enter_scope();
-            symbol_table.insert(branch->name, branch->type);
-            branch->body->accept_visitor(semant_checker);
-            symbol_table.exit_scope();
-        }
-        expr.static_type = "Undetermined";
-    }
+   }
 }
 
-bool xcool::InherTree::is_ancestor(std::string left, std::string right)
+void xcool::semant_check(vector<shared_ptr<Layout>> &layout_list, Program &program)
 {
-    if (left == right)
-        return true;
-    auto right_node = _find_node(root, right);
-    while (right_node) {
-        if (right_node->node->name == left)
-            return true;
-        right_node = right_node->parent;
-    }
-    return false;
-}
+    shared_ptr<TreeNode> root = build_tree(program);
+    tree_root = root;
+    _semant_check(root);
+    print_tree(root);
 
-void xcool::build_tree(InherTree &tree, Program &program)
-{
-    std::shared_ptr<TreeNode> root = std::make_shared<TreeNode>();
-    install_base_class(root);
-    for (auto &cls : program.class_list) {
-        std::shared_ptr<TreeNode> son = std::make_shared<TreeNode>();
-        if ((cls->parent).empty()) {
-            son->parent = root;
-            son->node = std::move(cls);
-            root->son_list.push_back(son);
-        }
-        else {
-            std::shared_ptr<TreeNode> parent_node = _find_node(root, cls->parent);
-            if(!parent_node)
-                throw semant_error(cls->position, "undefined parent class" + cls->parent);
-            son->node = std::move(cls);
-            son->parent = parent_node;
-            parent_node->son_list.push_back(son);
-        }
-    }
-    tree.set_root(root);
-    cool_program = tree;
+    tree_root = nullptr;
 }
-
-std::shared_ptr<TreeNode> InherTree::find_node(std::string name)
-{
-    return _find_node(root, name);
-}
-
-void InherTree::print_tree()
-{
-    if (!root)
-        return;
-    std::queue<std::shared_ptr<TreeNode>> que;
-    que.push(root);
-    int count = 0, current_sum = 1, next_sum = 0;
-    while (!que.empty()) {
-        std::shared_ptr<TreeNode> node = que.front();
-        std::cout << node->node->name << " ";
-        count++;
-        next_sum += node->son_list.size();
-        for (auto x : node->son_list)
-            que.push(x);
-        if (count == current_sum) {
-            std::cout << std::endl;
-            current_sum = next_sum;
-            next_sum = 0;
-            count = 0;
-        }
-        que.pop();
-    }
-}
-
-void xcool::semant_check(InherTree &program)
-{
-    check_class(program.root);
-}
-

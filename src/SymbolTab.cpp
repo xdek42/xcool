@@ -26,9 +26,9 @@ bool SymbolTable::insert(std::string name, std::string type)
     return currentTab->insert(name, type);
 }
 
-std::string SymbolTable::get_type(std::string type)
+std::string SymbolTable::get_value(std::string type)
 {
-    return currentTab->get_type(type);
+    return currentTab->get_value(type);
 }
 
 bool Table::find(std::string name)
@@ -50,7 +50,7 @@ bool Table::insert(std::string name, std::string type)
      }
 }
 // 使用者需保证name在符号表中存在
-std::string Table::get_type(std::string name)
+std::string Table::get_value(std::string name)
 {
     if (table.find(name) != table.end())
         return table[name];

@@ -5,8 +5,6 @@
 #include <fstream>
 #include "error.h"
 #include "semant.h"
-#include "layout.h"
-#include "codegen.h"
 
 void print_usage()
 {
@@ -28,14 +26,8 @@ int main(int argc, char *argv[])
         xcool::Parser parser(lexer);
         xcool::ast::Program program = parser.get_result();
         //semant check
-        xcool::InherTree cool_program;
-        xcool::build_tree(cool_program, program);
-        //cool_program.print_tree();
-        xcool::semant_check(cool_program);
-        //layout
-        std::vector<std::shared_ptr<xcool::Layout>> layouts;
-        make_layout(cool_program, layouts);
-        emit_code(layouts, cool_program, out_file);
+        std::vector<std::shared_ptr<xcool::Layout>> layout_list;
+        xcool::semant_check(layout_list, program);
     }
     catch (xcool::token_error err) {
         std::cout << "lexer error: " << err.what() << std::endl;

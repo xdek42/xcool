@@ -1,36 +1,23 @@
 #ifndef SEMANT_H
 #define SEMANT_H
+
 #include "AstTree.h"
-#include <memory>
+#include <string>
+#include <vector>
 
+//merge smeant procedure and layout procedure
 namespace xcool {
-    //the inheritance graph
-    class InherTree;
-    void build_tree(InherTree &, xcool::ast::Program &);
-    void semant_check(InherTree &);
-    class TreeNode {
+    //define the layout of class
+    class Layout {
         public:
-            std::shared_ptr<TreeNode> parent;
-            std::vector<std::shared_ptr<TreeNode>> son_list;
-            std::unique_ptr<xcool::ast::Class> node;
+            std::string name;
+            int length;
+            std::vector<std::string> dis_table;
+            std::vector<std::pair<std::string, int>> attr_list;
+            std::vector<std::unique_ptr<xcool::ast::Method>> method_list;
     };
-    class InherTree {
-        friend void build_tree(InherTree &, xcool::ast::Program &);
-        friend void semant_check(InherTree &);
-        public:
-            void print_tree();
-            std::shared_ptr<TreeNode> find_node(std::string name);
-            void set_root(std::shared_ptr<TreeNode> r) {root = r;}
-            bool is_ancestor(std::string, std::string);
-            std::shared_ptr<TreeNode> get_root() {return root;}
-        private:
-            std::shared_ptr<TreeNode> root;
-    };
-};
-
-
-
-
+    void semant_check(std::vector<std::shared_ptr<Layout>> &, xcool::ast::Program &);
+}
 
 
 #endif

@@ -12,7 +12,7 @@ namespace xcool {
         public:
             bool insert(std::string , std::string);
             bool find(std::string);
-            std::string get_type(std::string);
+            std::string get_value(std::string);
         private:
             std::shared_ptr<Table> parent;
             std::map<std::string, std::string> table;
@@ -23,7 +23,7 @@ namespace xcool {
             void exit_scope();
             bool insert(std::string , std::string);
             bool find(std::string);
-            std::string get_type(std::string);
+            std::string get_value(std::string);
         private:
             std::shared_ptr<Table> currentTab;
    };
