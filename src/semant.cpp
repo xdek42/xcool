@@ -184,18 +184,11 @@ namespace {
         install_basic_class(root);
         for (auto &cls : program.class_list) {
             shared_ptr<TreeNode> class_node = std::make_shared<TreeNode>();
-            if ((cls->parent).empty()) {
-                class_node->class_node = std::move(cls);
-                root->son_list.push_back(class_node);
-            }
-            else {
-                shared_ptr<TreeNode> parent_node = find_node(root, cls->parent);
-                if (!parent_node) {
-                    throw semant_error(cls->position, "undefined parent class " + cls->parent);
-                }
-                parent_node->son_list.push_back(class_node);
-                class_node->class_node = std::move(cls);
-            }
+            shared_ptr<TreeNode> parent_node = find_node(root, cls->parent);
+            if (!parent_node) 
+                throw semant_error(cls->position, "undefined parent class " + cls->parent);
+            parent_node->son_list.push_back(class_node);
+            class_node->class_node = std::move(cls);
         }
         return root;
     }
@@ -270,15 +263,34 @@ namespace {
             }
             que.pop();
         }
-   }
+    }
+    //install some basic class layout
+    void install_basic_class_layout(vector<shared_ptr<Layout>> &layout_list)
+    {
+
+    }
+    bool is_basic_class(string name) {}
+    //build class layout
+    void build_layout(vector<shared_ptr<Layout>> &layout_list, shared_ptr<TreeNode> root)
+    {
+        if (!is_basic_class(root->class_node->name)) {
+            shared_ptr<Layout> layout = std::make_shared<Layout>();
+            layout->name = root->class_node->name;
+            //get parent class name
+            string parent_name = root->class_node->parent;
+            shared_ptr<TreeNode> parent_node = find_node(tree_root, parent_name);
+        }
+    }
 }
 
 void xcool::semant_check(vector<shared_ptr<Layout>> &layout_list, Program &program)
 {
     shared_ptr<TreeNode> root = build_tree(program);
     tree_root = root;
-    _semant_check(root);
+    //_semant_check(root);
     print_tree(root);
+    //install_basic_class_layout(layout_list);
+    build_layout(layout_list, root);
 
     tree_root = nullptr;
 }

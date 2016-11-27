@@ -451,6 +451,8 @@ std::unique_ptr<Class> xcool::Parser::parser_class()
         token = assert(TYPEID, "syntax error: class definition missing parent calss");
         result->parent = token.value;
     }
+    else
+        result->parent = "Object";
     assert('{', "syntax error: missing {");
     while (1) {
         token = lexer.lookahead(1);
