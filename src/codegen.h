@@ -3,7 +3,7 @@
 #include <memory>
 #include "semant.h"
 #include <vector>
-#include "layout.h"
+#include "semant.h"
 #include <fstream>
 
 namespace xcool {

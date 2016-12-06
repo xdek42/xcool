@@ -6,6 +6,7 @@ using std::string;
 using std::vector;
 using std::shared_ptr;
 using xcool::Layout;
+using namespace xcool::ast;
 
 namespace {
     //the text segment and data segment in assembly code
@@ -64,15 +65,16 @@ namespace {
         int end = offset.size() - 1;
         return offset[end] == ')';
     }
-
+    
+    //emit basic class code
+    void emit_basic_class_code(std::string class_name) {}
     //emit class code
     void emit_class_code(shared_ptr<Layout> layout) 
     {
         symbol_table.enter_scope();
         //add class attr into symbolk table
         for (int i = 0; i < layout->attrs_name.size(); i++) {
-            symbol_table.insert(attrs_name[i]);
-            symbol_table.insert(int2str(attrs_offset));
+            symbol_table.insert(layout->attrs_name[i], int2str(layout->attrs_offset[i]));
         }
 
         for (const auto &method : layout->method_list) {
@@ -82,10 +84,10 @@ namespace {
                 symbol_table.insert(method->formal_list[i]->name, int2str(i*4 + 12) + "(%ebp)");
             }
             symbol_table.insert("self", "8(%ebp)");
-            text_segment.push_back("# " + layout->name + "_" + method->name);
+            text_segment.push_back("#" + layout->name + "_" + method->name);
             text_segment.push_back(".global " + layout->name + "_" + method->name);
-            text_segment.push_back(".type " + layout->name + "_" + method->name + "," + "@function");
-            text_segment.push_back(layout->name + "_" + method->name);
+            text_segment.push_back(".type " + layout->name + "_" + method->name + ", " + "@function");
+            text_segment.push_back(layout->name + "_" + method->name + ":");
             //emit init method code
             text_segment.push_back("    pushl %ebp");
             text_segment.push_back("    movl %esp, %ebp");
@@ -98,7 +100,7 @@ namespace {
         symbol_table.exit_scope();
     }
 }
-void xcool::code_gen(vector<shared_ptr<Layout>> *layout_list, std::ofstream &out_file)
+void xcool::code_gen(vector<shared_ptr<Layout>> &layout_list, std::ofstream &out_file)
 {
     for (const auto &class_layout : layout_list) {
         if (is_basic_class(class_layout->name)) {
@@ -107,6 +109,16 @@ void xcool::code_gen(vector<shared_ptr<Layout>> *layout_list, std::ofstream &out
         else {
             emit_class_code(class_layout);
         }
-
+    }
+    //output code into outfile
+    out_file << ".section .data" << std::endl;
+    for (const auto &layout : layout_list) {
+        out_file << layout->name + "_dispatch_table:" << std::endl;
+        for (const auto &method : layout->dis_table) {
+            out_file << "   .long " << method << std::endl;
+        }
+    }
+    for (const auto &inst : text_segment) {
+        out_file << inst << std::endl;
     }
 }

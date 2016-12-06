@@ -5,12 +5,12 @@
 #include <fstream>
 #include "error.h"
 #include "semant.h"
+#include "codegen.h"
 
 void print_usage()
 {
     ;
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
         //semant check
         std::vector<std::shared_ptr<xcool::Layout>> layout_list;
         xcool::semant_check(layout_list, program);
+        xcool::code_gen(layout_list, out_file);
     }
     catch (xcool::token_error err) {
         std::cout << "lexer error: " << err.what() << std::endl;

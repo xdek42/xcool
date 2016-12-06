@@ -392,7 +392,7 @@ void xcool::semant_check(vector<shared_ptr<Layout>> &layout_list, Program &progr
     tree_root = root;
     //_semant_check(root);
     build_layout(layout_list, root);
-    print_layout(layout_list);
+    //print_layout(layout_list);
 
     tree_root = nullptr;
 }

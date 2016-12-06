@@ -1,6 +1,6 @@
 #target
-xcool: lexer.h parser.h error.h auxiliary.o lexer.o AstTree.o parser.o semant.o SymbolTab.o main.cpp
-	g++ auxiliary.o lexer.o AstTree.o parser.o semant.o SymbolTab.o main.cpp -o xcool  -g -std=c++11 
+xcool: lexer.h parser.h error.h auxiliary.o lexer.o AstTree.o parser.o semant.o SymbolTab.o codegen.o main.cpp
+	g++ auxiliary.o lexer.o AstTree.o parser.o semant.o SymbolTab.o codegen.o main.cpp -o xcool  -g -std=c++11 
 
 #auxiliary function
 auxiliary.o : auxiliary.h auxiliary.cpp
@@ -29,9 +29,12 @@ SymbolTab.o: SymbolTab.h SymbolTab.cpp
 #semant checker module
 semant.h: AstTree.h SymbolTab.h
 semant.o: semant.h error.h semant.cpp auxiliary.h 
-	g++ semant.cpp -c -std=c++11 
+	g++ semant.cpp -c -std=c++11
+
 #code generator module
-codegen.h: 
+codegen.h: semant.h
+codegen.o: codegen.h codegen.cpp SymbolTab.h auxiliary.h
+	g++ codegen.cpp -c -std=c++11
 clean:
 	rm *.o xcool
 
