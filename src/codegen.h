@@ -7,7 +7,7 @@
 #include <fstream>
 
 namespace xcool {
-    void emit_code(std::vector<std::shared_ptr<xcool::Layout>> &layouts, xcool::InherTree &cool_program, std::ofstream &);
+    void code_gen(std::vector<std::shared_ptr<xcool::Layout>> &layout_list, std::ofstream &out_file);
 }
 
 #endif
