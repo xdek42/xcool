@@ -23,7 +23,7 @@ namespace {
     shared_ptr<TreeNode> tree_root;
     //define symbol table used for semant check
     xcool::SymbolTable symbol_table;
-    //define the semant checker for each expression
+    std::string get_return_type(const std::string &object_name, const std::string &method_name);
     class SemantVisitor : public ExprVisitor {
         public:
             ~SemantVisitor() {}
@@ -42,10 +42,38 @@ namespace {
             virtual void visit(BinExpr &) override;
             virtual void visit(CaseExpr &) override;
     } semant_checker;
-
-    void SemantVisitor::visit(AssExpr &expr) {}
-    void SemantVisitor::visit(UnaryExpr &expr) {}
-    void SemantVisitor::visit(DisExpr &expr) {}
+    bool is_valid_assign(string left_type, string right_type);
+    void SemantVisitor::visit(AssExpr &expr) 
+    {
+        auto left_type = symbol_table.get_value(expr.name);
+        if (left_type == "")
+            throw semant_error(expr.position, "undefined name: " + expr.name);
+        expr.value->accept_visitor(semant_checker);
+        auto right_type = expr.value->static_type;
+        if (!is_valid_assign(left_type, right_type)) {
+            throw semant_error(expr.position, "Assign expression error occur type confict: " + left_type + " <- " + right_type);
+        }
+        expr.static_type = left_type;
+    }
+    void SemantVisitor::visit(UnaryExpr &expr) 
+    {
+        expr.body->accept_visitor(semant_checker);
+        expr.static_type = expr.body->static_type;
+    }
+    void SemantVisitor::visit(DisExpr &expr)
+    {
+        expr.object->accept_visitor(semant_checker);
+        auto object_type = expr.object->static_type;
+        if (expr.type != "") {
+            object_type = expr.type;
+        }
+        //check method parameter
+        for (auto &para : expr.argument_list)
+            para->accept_visitor(semant_checker);
+        //get method return type
+        auto return_type = get_return_type(object_type, expr.method_name);
+        expr.static_type = return_type;
+    }
     void SemantVisitor::visit(BlockExpr &expr) {}
     void SemantVisitor::visit(IntExpr &expr) {}
     void SemantVisitor::visit(BoolExpr &expr) {}
@@ -170,6 +198,10 @@ namespace {
                 return result;
         }
         return nullptr;
+    }
+    std::string get_return_type(const std::string &object_name, const std::string &method_name)
+    {
+        return "";
     }
     //check assign valid
     bool is_valid_assign(string left_type, string right_type)
