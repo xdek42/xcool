@@ -43,6 +43,7 @@ namespace {
             virtual void visit(CaseExpr &) override;
     } semant_checker;
     bool is_valid_assign(string left_type, string right_type);
+    std::string get_least_type(const std::string &, const std::string &);
     void SemantVisitor::visit(AssExpr &expr) 
     {
         auto left_type = symbol_table.get_value(expr.name);
@@ -72,19 +73,87 @@ namespace {
             para->accept_visitor(semant_checker);
         //get method return type
         auto return_type = get_return_type(object_type, expr.method_name);
+        if (return_type == "")
+            throw semant_error(expr.position, "class " + object_type + "has no method named: " + expr.method_name);
         expr.static_type = return_type;
     }
-    void SemantVisitor::visit(BlockExpr &expr) {}
-    void SemantVisitor::visit(IntExpr &expr) {}
-    void SemantVisitor::visit(BoolExpr &expr) {}
-    void SemantVisitor::visit(StrExpr &expr) {}
-    void SemantVisitor::visit(LetExpr &expr) {}
-    void SemantVisitor::visit(NewExpr &expr) {}
-    void SemantVisitor::visit(IdExpr &expr) {}
-    void SemantVisitor::visit(WhileExpr &expr) {}
-    void SemantVisitor::visit(IfExpr &expr) {}
-    void SemantVisitor::visit(BinExpr &expr) {}
-    void SemantVisitor::visit(CaseExpr &expr) {}
+    void SemantVisitor::visit(BlockExpr &expr) 
+    {
+        for (const auto &expression : expr_list) {
+            expression->accept_visitor(semant_check);
+            expr.static_type = expression->static_type;
+        }
+    }
+    void SemantVisitor::visit(IntExpr &expr) 
+    {
+        expr.static_type = "Int";
+    }
+    void SemantVisitor::visit(BoolExpr &expr) 
+    {
+        expr.static_type = "Bool";
+    }
+    void SemantVisitor::visit(StrExpr &expr)
+    {
+        expr.static_type = "String";
+    }
+    void SemantVisitor::visit(LetExpr &expr) 
+    {
+        symbol_table.enter_scope();
+        for (const auto &var : expr.var_list) {
+            symbol_table.insert(var->name, var->type);
+            if (var->initial) {
+                var->initial->accept_visitor(semant_checker);
+            }
+        }
+        expr.expr->accept_visitor(semant_checker);
+        expr.static_type = expr.expr->static_type;
+        symbol_table.exit_scope();  
+    }
+    void SemantVisitor::visit(NewExpr &expr)
+    {
+        expr.static_type = expr.type;
+    }
+    void SemantVisitor::visit(IdExpr &expr) 
+    {
+        expr.staitc_type = symbol_table.get_value(expr.name);
+        if (expr.static_type == "") 
+            throw semant_error(expr.position, "undefined name: " + expr.name);
+    }
+    void SemantVisitor::visit(WhileExpr &expr) 
+    {
+        expr.condition->accept_visitor(semant_checker);
+        if (expr.condition->static_type != "Bool")
+            throw semant_error(expr.condition->position, "while condition must bool type");
+        expr.body->accept_visitor(semant_checker);
+        expr.static_type = "Object";
+    }
+    void SemantVisitor::visit(IfExpr &expr) 
+    {
+        expr.condition->accept_visitor(semant_checker);
+        if (expr.condition->static_type != "Bool")
+            throw semant_error(expr.condition->position, "if condition must bool type");
+        expr.then_body->accept_visitor(semant_checker);
+        expr.else_body->accept_visitor(semant_checker);
+        expr.static_type = get_least_type(expr.then_body->static_type, expr.else_body->static_type);
+    }
+    void SemantVisitor::visit(BinExpr &expr) 
+    {
+        expr.left->accept_visitor(semant_checker);
+        expr.right->accept_visitor(semant_checker);
+        expr.static_type = expr.left->static_type;
+    }
+    void SemantVisitor::visit(CaseExpr &expr) 
+    {
+        symbol_table.enter_scope();
+        expr.static_type = "Object";
+        expr.value->accept_visitor(semant_checker);
+        for (const auto &branch : expr.branch_list) {
+            symbol_table.insert(branch->name, branch->type);
+            branch->body->accept_visitor(semant_checker);
+            expr.static_type = get_least_type(expr.static_type, branch->body->static_type);
+        }
+        symbol_table.exit_scope();
+    }
 
     class TreeNode {
         public:
@@ -201,6 +270,29 @@ namespace {
     }
     std::string get_return_type(const std::string &object_name, const std::string &method_name)
     {
+        auto node = find_node(tree_root, object_name);
+        while (node->class_node->name != "Object") {
+            for (const auto &method : node->class_node->method_list) {
+                if (method->name == method_name) 
+                    return method->type;
+            }
+            node = find(tree_root, node->class_node->parent);
+        }
+        for (const auto &method : node->class_node->method_list) {
+            if (method->name == method_name) 
+                return method->type;
+        }
+        return "";
+    }
+    std::string get_least_type(const std::string &ta, const std::string &tb);
+    {
+        auto node = find_node(tree_root, ta);
+        if (node) {
+            if (find_node(node, tb))
+                return tb;
+            else
+                return ta;
+        }
         return "";
     }
     //check assign valid
