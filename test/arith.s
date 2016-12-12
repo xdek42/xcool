@@ -37,6 +37,10 @@ Int_dispatch_table:
    .long Object_abort
    .long Object_type_name
    .long Object_layout
+Bool_dispatch_table:
+   .long Object_abort
+   .long Object_type_name
+   .long Object_layout
 A_dispatch_table:
    .long Object_abort
    .long Object_type_name
@@ -106,226 +110,226 @@ A2I_dispatch_table:
    .long A2I_a2i_aux
    .long A2I_i2a
    .long A2I_i2a_aux
-# Main_menu
+#Main_menu
 .global Main_menu
-.type Main_menu,@function
-Main_menu
+.type Main_menu, @function
+Main_menu:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_prompt
+#Main_prompt
 .global Main_prompt
-.type Main_prompt,@function
-Main_prompt
+.type Main_prompt, @function
+Main_prompt:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_get_int
+#Main_get_int
 .global Main_get_int
-.type Main_get_int,@function
-Main_get_int
+.type Main_get_int, @function
+Main_get_int:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_is_even
+#Main_is_even
 .global Main_is_even
-.type Main_is_even,@function
-Main_is_even
+.type Main_is_even, @function
+Main_is_even:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_class_type
+#Main_class_type
 .global Main_class_type
-.type Main_class_type,@function
-Main_class_type
+.type Main_class_type, @function
+Main_class_type:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_print
+#Main_print
 .global Main_print
-.type Main_print,@function
-Main_print
+.type Main_print, @function
+Main_print:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# Main_main
+#Main_main
 .global Main_main
-.type Main_main,@function
-Main_main
+.type Main_main, @function
+Main_main:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_value
+#A_value
 .global A_value
-.type A_value,@function
-A_value
+.type A_value, @function
+A_value:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_set_var
+#A_set_var
 .global A_set_var
-.type A_set_var,@function
-A_set_var
+.type A_set_var, @function
+A_set_var:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_method1
+#A_method1
 .global A_method1
-.type A_method1,@function
-A_method1
+.type A_method1, @function
+A_method1:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_method2
+#A_method2
 .global A_method2
-.type A_method2,@function
-A_method2
+.type A_method2, @function
+A_method2:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_method3
+#A_method3
 .global A_method3
-.type A_method3,@function
-A_method3
+.type A_method3, @function
+A_method3:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_method4
+#A_method4
 .global A_method4
-.type A_method4,@function
-A_method4
+.type A_method4, @function
+A_method4:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A_method5
+#A_method5
 .global A_method5
-.type A_method5,@function
-A_method5
+.type A_method5, @function
+A_method5:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# B_method5
+#B_method5
 .global B_method5
-.type B_method5,@function
-B_method5
+.type B_method5, @function
+B_method5:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# C_method6
+#C_method6
 .global C_method6
-.type C_method6,@function
-C_method6
+.type C_method6, @function
+C_method6:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# C_method5
+#C_method5
 .global C_method5
-.type C_method5,@function
-C_method5
+.type C_method5, @function
+C_method5:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# D_method7
+#D_method7
 .global D_method7
-.type D_method7,@function
-D_method7
+.type D_method7, @function
+D_method7:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# E_method6
+#E_method6
 .global E_method6
-.type E_method6,@function
-E_method6
+.type E_method6, @function
+E_method6:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_c2i
+#A2I_c2i
 .global A2I_c2i
-.type A2I_c2i,@function
-A2I_c2i
+.type A2I_c2i, @function
+A2I_c2i:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_i2c
+#A2I_i2c
 .global A2I_i2c
-.type A2I_i2c,@function
-A2I_i2c
+.type A2I_i2c, @function
+A2I_i2c:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_a2i
+#A2I_a2i
 .global A2I_a2i
-.type A2I_a2i,@function
-A2I_a2i
+.type A2I_a2i, @function
+A2I_a2i:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_a2i_aux
+#A2I_a2i_aux
 .global A2I_a2i_aux
-.type A2I_a2i_aux,@function
-A2I_a2i_aux
+.type A2I_a2i_aux, @function
+A2I_a2i_aux:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_i2a
+#A2I_i2a
 .global A2I_i2a
-.type A2I_i2a,@function
-A2I_i2a
+.type A2I_i2a, @function
+A2I_i2a:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp
     popl %ebp
     ret
-# A2I_i2a_aux
+#A2I_i2a_aux
 .global A2I_i2a_aux
-.type A2I_i2a_aux,@function
-A2I_i2a_aux
+.type A2I_i2a_aux, @function
+A2I_i2a_aux:
     pushl %ebp
     movl %esp, %ebp
     movl %ebp, %esp

@@ -3,6 +3,7 @@
 #include "auxiliary.h"
 #include "error.h"
 #include "SymbolTab.h"
+#include "lexer.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -42,7 +43,7 @@ namespace {
             virtual void visit(BinExpr &) override;
             virtual void visit(CaseExpr &) override;
     } semant_checker;
-    bool is_valid_assign(string left_type, string right_type);
+    bool is_valid_assign(const string &left_type, const string &right_type);
     std::string get_least_type(const std::string &, const std::string &);
     void SemantVisitor::visit(AssExpr &expr) 
     {
@@ -73,14 +74,17 @@ namespace {
             para->accept_visitor(semant_checker);
         //get method return type
         auto return_type = get_return_type(object_type, expr.method_name);
+        expr.static_type = return_type;
         if (return_type == "")
             throw semant_error(expr.position, "class " + object_type + "has no method named: " + expr.method_name);
-        expr.static_type = return_type;
+        if (return_type == "SELF_TYPE") {
+            expr.static_type = object_type;
+        }
     }
     void SemantVisitor::visit(BlockExpr &expr) 
     {
-        for (const auto &expression : expr_list) {
-            expression->accept_visitor(semant_check);
+        for (const auto &expression : expr.expr_list) {
+            expression->accept_visitor(semant_checker);
             expr.static_type = expression->static_type;
         }
     }
@@ -115,7 +119,7 @@ namespace {
     }
     void SemantVisitor::visit(IdExpr &expr) 
     {
-        expr.staitc_type = symbol_table.get_value(expr.name);
+        expr.static_type = symbol_table.get_value(expr.name);
         if (expr.static_type == "") 
             throw semant_error(expr.position, "undefined name: " + expr.name);
     }
@@ -140,7 +144,11 @@ namespace {
     {
         expr.left->accept_visitor(semant_checker);
         expr.right->accept_visitor(semant_checker);
-        expr.static_type = expr.left->static_type;
+        if (expr.op == xcool::LESS || expr.op == xcool::LE || expr.op == xcool::EQUAL) {
+            expr.static_type = "Bool";
+        }
+        else
+            expr.static_type = "Int";
     }
     void SemantVisitor::visit(CaseExpr &expr) 
     {
@@ -247,11 +255,11 @@ namespace {
         
         root->son_list.push_back(son);
         
-        //安装Bool
+        //install Bool class
         son = std::make_shared<TreeNode>();
         son->class_node = make_unique<Class>();
         son->class_node->name = "Bool";
-        son->class_node->name = "Object";
+        son->class_node->parent = "Object";
         
         root->son_list.push_back(son);
     }
@@ -276,7 +284,7 @@ namespace {
                 if (method->name == method_name) 
                     return method->type;
             }
-            node = find(tree_root, node->class_node->parent);
+            node = find_node(tree_root, node->class_node->parent);
         }
         for (const auto &method : node->class_node->method_list) {
             if (method->name == method_name) 
@@ -284,7 +292,7 @@ namespace {
         }
         return "";
     }
-    std::string get_least_type(const std::string &ta, const std::string &tb);
+    std::string get_least_type(const std::string &ta, const std::string &tb)
     {
         auto node = find_node(tree_root, ta);
         if (node) {
@@ -296,7 +304,7 @@ namespace {
         return "";
     }
     //check assign valid
-    bool is_valid_assign(string left_type, string right_type)
+    bool is_valid_assign(const string &left_type, const string &right_type)
     {
         auto left_node = find_node(tree_root, left_type);
         if (left_node == nullptr)
@@ -330,13 +338,13 @@ namespace {
             if (!symbol_table.insert(attr->name, attr->type)) {
                 throw semant_error(attr->position, "redefine attribute name: " + attr->name);
             }
-            if (attr->initial != nullptr) {
+            if (attr->initial) {
                 attr->initial->accept_visitor(semant_checker);
                 //check assign valid
                 auto right_type = attr->initial->static_type;
                 auto left_type = attr->type;
                 if (!is_valid_assign(left_type, right_type)) {
-                    throw semant_error(attr->position, "invalid assign: " + attr->name);
+                    throw semant_error(attr->position, "invalid assign " + attr->name + " with " + right_type + " type");
                 }
             }
         }
@@ -357,7 +365,7 @@ namespace {
                 if (return_type == "SELF_TYPE")
                     return_type = symbol_table.get_value("self");
                 if(!is_valid_assign(return_type, static_return_type)) {
-                    throw semant_error(method->position, "method return type conflict");
+                    throw semant_error(method->position, "method return type conflict: "  + return_type + " <- " + static_return_type);
                 }
             }
             symbol_table.exit_scope();
@@ -514,7 +522,9 @@ void xcool::semant_check(vector<shared_ptr<Layout>> &layout_list, Program &progr
     shared_ptr<TreeNode> root = build_tree(program);
     install_Object_layout(layout_list);
     tree_root = root;
-    //_semant_check(root);
+    //print_tree(root);
+
+    _semant_check(root);
     build_layout(layout_list, root);
     //print_layout(layout_list);
 
