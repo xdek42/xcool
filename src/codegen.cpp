@@ -307,16 +307,36 @@ void xcool::code_gen(const std::vector<std::shared_ptr<xcool::Layout>> &layout_l
         out_file << inst << std::endl;
     }
 
+    //emit _start code
+    
     out_file << ".global _start" << std::endl;
     out_file << "_start:" << std::endl;
 
-    out_file << "   pushl $0" << std::endl;
-    out_file << "   pushl $2" << std::endl;
-    out_file << "   pushl $1" << std::endl;
-    out_file << "   pushl $Main_dispatch_table" << std::endl;
-    out_file << "   pushl $0" << std::endl;
-   
-    out_file << "   lea (%esp), %eax" << std::endl;
+    int class_index = 0;
+    for (const auto &layout : layout_list) {
+        if (layout->name == "Main") {
+
+            out_file << "    pushl $" + int2str(layout->length) << std::endl;
+            out_file << "    call malloc" << std::endl;
+            
+            out_file << "    movl $" + int2str(class_index) + ", %ebx" << std::endl;
+            out_file << "    movl %ebx, (%eax)" << std::endl;
+
+            out_file << "    movl $Main_dispatch_table, %ebx" << std::endl;
+            out_file << "    movl %ebx, 4(%eax)" << std::endl;
+
+
+            int attr_num = layout->attrs_name.size();
+
+            for (int i = 0; i < attr_num; i++) {
+                out_file << "    movl $0, %ebx" << std::endl;
+                out_file << "    movl %ebx, " + int2str((i+2)*4) + "(%eax)" << std::endl;
+            }
+            break;
+        }
+        class_index++;
+    }
+
     out_file << "   pushl %eax" << std::endl;
     out_file << "   call Main_main" << std::endl;
     out_file << "   addl $4, %eax" << std::endl;
