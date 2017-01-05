@@ -63,7 +63,21 @@ namespace {
     void CodeGenVisitor::visit(NewExpr &) {}
     void CodeGenVisitor::visit(LetExpr &) {}
     //delay
-    void CodeGenVisitor::visit(AssExpr &expr) {}
+    void CodeGenVisitor::visit(AssExpr &expr) 
+    {
+        expr.value->accept_visitor(code_generator);
+        std::string offset = symbol_table.get_value(expr.name);
+        if (is_para_offset(offset)) {
+            text_segment.push_back("    popl %eax");
+            text_segment.push_back("    movl %eax, " + offset);
+        }
+        else {
+            text_segment.push_back("    movl 8(%ebp), %eax");
+            text_segment.push_back("    addl $" + offset + ", %eax");
+            text_segment.push_back("    popl %ebx");
+            text_segment.push_back("    movl %ebx, (%eax)");
+        }
+    }
     void CodeGenVisitor::visit(UnaryExpr &) {}
     void CodeGenVisitor::visit(DisExpr &expr) 
     {
@@ -91,7 +105,10 @@ namespace {
          text_segment.push_back("    call *%eax");
          text_segment.push_back("    addl $" + int2str((expr.argument_list.size() + 1)*4) + ", %esp");
     }
-    void CodeGenVisitor::visit(IntExpr &expr) {}
+    void CodeGenVisitor::visit(IntExpr &expr) 
+    {
+        text_segment.push_back("    pushl $" + expr.value);
+    }
     void CodeGenVisitor::visit(BoolExpr &)  {}
     void CodeGenVisitor::visit(StrExpr &expr) 
     {
@@ -109,17 +126,36 @@ namespace {
         else {
             text_segment.push_back("    movl 8(%ebp), %eax");
             text_segment.push_back("    addl $" + offset + ", %eax");
-
-            if (expr.static_type == "Int" || expr.static_type == "Bool") {
-                text_segment.push_back("    movl (%eax), %eax");
-            }
-
+            text_segment.push_back("    movl (%eax), %eax");
             text_segment.push_back("    pushl %eax");
         }
     }
     void CodeGenVisitor::visit(WhileExpr &) {}
     void CodeGenVisitor::visit(IfExpr &) {}
-    void CodeGenVisitor::visit(BinExpr &expr) {}
+    void CodeGenVisitor::visit(BinExpr &expr) 
+    {
+        switch (expr.op) {
+            case '+':
+                expr.left->accept_visitor(code_generator);
+                expr.right->accept_visitor(code_generator);
+                text_segment.push_back("    popl %eax");
+                text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    addl %eax, %ebx");
+                text_segment.push_back("    pushl %ebx");
+                break;
+            case '-':
+                expr.left->accept_visitor(code_generator);
+                expr.right->accept_visitor(code_generator);
+                text_segment.push_back("    popl %eax");
+                text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    subl %eax, %ebx");
+                text_segment.push_back("    pushl %ebx");
+                break;
+            default:
+                break;
+
+        }
+    }
     void CodeGenVisitor::visit(CaseExpr &) {}
     
     
@@ -144,11 +180,18 @@ namespace {
         text_segment.push_back("    movl %ebp, %esp");
         text_segment.push_back("    popl %ebp");
         text_segment.push_back("    ret");
+        
+        data_segment.push_back("OUT_INT:");
+        data_segment.push_back("    .asciz \"%d\\n\"");
 
         text_segment.push_back(".type IO_out_int, @function");
         text_segment.push_back("IO_out_int:");
         text_segment.push_back("    pushl %ebp");
         text_segment.push_back("    movl %esp, %ebp");
+        text_segment.push_back("    movl 12(%ebp), %eax");
+        text_segment.push_back("    pushl %eax");
+        text_segment.push_back("    pushl $OUT_INT");
+        text_segment.push_back("    call printf");
         text_segment.push_back("    movl %ebp, %esp");
         text_segment.push_back("    popl %ebp");
         text_segment.push_back("    ret");
@@ -196,9 +239,6 @@ namespace {
         text_segment.push_back("    movl %ebp, %esp");
         text_segment.push_back("    popl %ebp");
         text_segment.push_back("    ret");
-
-
-
     }
 
     void emit_String_code()
@@ -290,18 +330,17 @@ void xcool::code_gen(const std::vector<std::shared_ptr<xcool::Layout>> &layout_l
     }
 
     //output code into outfile
-
+    //output data segment   
     out_file << ".section .data" << std::endl;
+    for (const auto &data : data_segment)
+        out_file << data << std::endl;
+
     for (const auto &layout : layout_list) {
         out_file << layout->name + "_dispatch_table:" << std::endl;
         for (const auto &method : layout->dis_table) {
             out_file << "   .long " << method << std::endl;
         }
     }
-
-    for (const auto &data : data_segment)
-        out_file << data << std::endl;
-
     out_file << ".section .text" << std::endl;
     for (const auto &inst : text_segment) {
         out_file << inst << std::endl;
