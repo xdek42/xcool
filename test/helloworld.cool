@@ -1,11 +1,21 @@
 class Main inherits IO {
-   a : Int <- 1;
-   b : Int <-2;
+   a : Int;
+   b : Int;
    c : Int;
+   d : String;
    main(): SELF_TYPE { {
 	out_string("Hello, World.");
+    d <- "cal test:";
+    a <- 1;
+    b <-2;
     c <- a + b;
+    out_string(d);
     out_int(c);
+    if a < b then 
+        out_string("execute then")
+    else
+        out_string("execute else")
+    fi;
     }
    };
 };

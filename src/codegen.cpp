@@ -1,6 +1,7 @@
 #include "codegen.h"
 #include "SymbolTab.h"
 #include "auxiliary.h"
+#include "lexer.h"
 
 using std::string;
 using std::vector;
@@ -14,7 +15,9 @@ namespace {
     vector<string> text_segment;
     xcool::SymbolTable symbol_table;
     std::vector<std::shared_ptr<xcool::Layout>> class_layouts;
+    std::shared_ptr<xcool::Layout> get_layout(std::string name);
     int const_index = 1;
+    int if_lab = 1;
 
     bool is_para_offset(const string &offset) 
     {
@@ -36,6 +39,21 @@ namespace {
         }
         return ret;
     }
+
+    std::shared_ptr<xcool::Layout> get_layout(std::string name, int &class_index) 
+    {
+        int index = 0;
+        for (auto &layout : class_layouts) {
+            if (layout->name == name) {
+                class_index = index;
+                return layout;
+            }
+            index++;
+        }
+        class_index == -1;
+        return nullptr;
+    }
+
     class CodeGenVisitor : public ExprVisitor {
         public:
             ~CodeGenVisitor() {}
@@ -54,13 +72,32 @@ namespace {
             virtual void visit(NewExpr &) override;
             virtual void visit(BlockExpr &) override;
     } code_generator;
+
     void CodeGenVisitor::visit(BlockExpr &expr) 
     {
         for (const auto &e : expr.expr_list) {
             e->accept_visitor(code_generator);
         }
     }
-    void CodeGenVisitor::visit(NewExpr &) {}
+    void CodeGenVisitor::visit(NewExpr &expr) 
+    {
+        int class_index;
+        auto layout = get_layout(expr.type, class_index);
+
+        text_segment.push_back("    pushl $" + int2str(layout->length));
+        text_segment.push_back("    call malloc");
+        text_segment.push_back("    movl $" + int2str(class_index) + ", %ebx");
+        text_segment.push_back("    movl %ebx, (%eax)");
+        text_segment.push_back("    movl $" + layout->name + "_dispatch_table, %ebx");
+        text_segment.push_back("    movl %ebx, 4(%eax)");
+
+        int attr_num = layout->attrs_name.size();
+        for (int i = 0; i < attr_num; i++) {
+            text_segment.push_back("    movl $0, %ebx");
+            text_segment.push_back("    movl %ebx, " + int2str((i+2)*4) + "(%eax)");
+        }
+        text_segment.push_back("    pushl %eax");
+    }
     void CodeGenVisitor::visit(LetExpr &) {}
     //delay
     void CodeGenVisitor::visit(AssExpr &expr) 
@@ -109,7 +146,14 @@ namespace {
     {
         text_segment.push_back("    pushl $" + expr.value);
     }
-    void CodeGenVisitor::visit(BoolExpr &)  {}
+    void CodeGenVisitor::visit(BoolExpr &expr)  {
+        if (expr.value == "true") {
+            text_segment.push_back("    pushl $1");
+        }
+        else {
+            text_segment.push_back("    pushl $0");
+        }
+    }
     void CodeGenVisitor::visit(StrExpr &expr) 
     {
         data_segment.push_back("CONST_STR" + int2str(const_index) + ":");
@@ -130,8 +174,28 @@ namespace {
             text_segment.push_back("    pushl %eax");
         }
     }
-    void CodeGenVisitor::visit(WhileExpr &) {}
-    void CodeGenVisitor::visit(IfExpr &) {}
+    void CodeGenVisitor::visit(WhileExpr &expr) 
+    {
+
+    }
+    void CodeGenVisitor::visit(IfExpr &expr) 
+    {
+        //condition
+        expr.condition->accept_visitor(code_generator);
+        text_segment.push_back("    popl %eax");
+        text_segment.push_back("    movl $1, %eax");
+        text_segment.push_back("    cmpl %eax, %ebx");
+        text_segment.push_back("    jne ElseLab" + int2str(if_lab));
+        //then
+        text_segment.push_back("ThenLab" + int2str(if_lab) + ":");
+        expr.then_body->accept_visitor(code_generator);
+        text_segment.push_back("    jmp EndIf" + int2str(if_lab));
+        //else
+        text_segment.push_back("ElseLab" + int2str(if_lab) + ":");
+        expr.else_body->accept_visitor(code_generator);
+        //end if
+        text_segment.push_back("Endif" + int2str(if_lab++) + ":");
+    }
     void CodeGenVisitor::visit(BinExpr &expr) 
     {
         switch (expr.op) {
@@ -151,14 +215,32 @@ namespace {
                 text_segment.push_back("    subl %eax, %ebx");
                 text_segment.push_back("    pushl %ebx");
                 break;
+            case xcool::LE:
+                expr.left->accept_visitor(code_generator);
+                expr.right->accept_visitor(code_generator);
+                text_segment.push_back("    popl %eax");
+                text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    cmpl %eax, %ebx");
+                text_segment.push_back("    setle %al");
+                text_segment.push_back("    movzbl %al, %eax");
+                text_segment.push_back("    pushl %eax");
+                break;
+            case xcool::LESS:
+                expr.left->accept_visitor(code_generator);
+                expr.right->accept_visitor(code_generator);
+                text_segment.push_back("    popl %eax");
+                text_segment.push_back("    popl %ebx");
+                text_segment.push_back("    cmpl %eax, %ebx");
+                text_segment.push_back("    setl %al");
+                text_segment.push_back("    movzbl %al, %eax");
+                text_segment.push_back("    pushl %eax");
+                break;
             default:
                 break;
 
         }
     }
     void CodeGenVisitor::visit(CaseExpr &) {}
-    
-    
     void emit_asm_malloc(int length);
     bool is_basic_class(std::string name)
     {
