@@ -9,14 +9,14 @@
 
 void print_usage()
 {
-    ;
+    std::cout << "usage: ./xcool input_file output_file" << std::endl;
 }
 
 int main(int argc, char *argv[])
 {
     if (argc != 3) {
         print_usage();
-        return 0;
+        return 1;
     }
     std::ofstream out_file(argv[2]);
     try {
@@ -28,16 +28,6 @@ int main(int argc, char *argv[])
         //semant check
         std::vector<std::shared_ptr<xcool::Layout>> layout_list;
         xcool::semant_check(layout_list, program);
-        /*
-        for (const auto &layout : layout_list) {
-            out_file << layout->name << std::endl;
-            out_file << layout->name + "_dispatch_table" << std::endl;
-            for (int i = 0; i < layout->attrs_name.size(); i++) {
-                out_file << layout->attrs_name[i] << " : " << layout->attrs_offset[i] << std::endl;
-            }
-            out_file << std::endl;
-        }
-        */
         xcool::code_gen(layout_list, out_file);
     }
     catch (xcool::token_error err) {
