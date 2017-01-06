@@ -4,11 +4,15 @@ OUT_INT:
 CONST_STR1:
     .asciz "Hello, World."
 CONST_STR2:
-    .asciz "cal test:"
+    .asciz "test:"
 CONST_STR3:
-    .asciz "execute then"
+    .asciz "test if"
 CONST_STR4:
+    .asciz "execute then"
+CONST_STR5:
     .asciz "execute else"
+CONST_STR6:
+    .asciz "test while"
 Object_dispatch_table:
    .long Object_abort
    .long Object_type_name
@@ -159,15 +163,12 @@ Main_main:
     movl (%ebx), %eax
     call *%eax
     addl $8, %esp
-    movl 8(%ebp), %eax
-    addl $16, %eax
-    movl (%eax), %eax
-    pushl %eax
+    pushl $CONST_STR3
     movl 8(%ebp), %eax
     pushl %eax
     movl (%esp), %eax
     movl 4(%eax), %ebx
-    addl $16, %ebx
+    addl $12, %ebx
     movl (%ebx), %eax
     call *%eax
     addl $8, %esp
@@ -186,21 +187,9 @@ Main_main:
     movzbl %al, %eax
     pushl %eax
     popl %eax
-    movl $1, %eax
-    cmpl %eax, %ebx
+    cmpl $1, %eax
     jne ElseLab1
 ThenLab1:
-    pushl $CONST_STR3
-    movl 8(%ebp), %eax
-    pushl %eax
-    movl (%esp), %eax
-    movl 4(%eax), %ebx
-    addl $12, %ebx
-    movl (%ebx), %eax
-    call *%eax
-    addl $8, %esp
-    jmp Endif1
-ElseLab1:
     pushl $CONST_STR4
     movl 8(%ebp), %eax
     pushl %eax
@@ -210,7 +199,71 @@ ElseLab1:
     movl (%ebx), %eax
     call *%eax
     addl $8, %esp
-Endif1:
+    jmp EndIf1
+ElseLab1:
+    pushl $CONST_STR5
+    movl 8(%ebp), %eax
+    pushl %eax
+    movl (%esp), %eax
+    movl 4(%eax), %ebx
+    addl $12, %ebx
+    movl (%ebx), %eax
+    call *%eax
+    addl $8, %esp
+EndIf1:
+    pushl $CONST_STR6
+    movl 8(%ebp), %eax
+    pushl %eax
+    movl (%esp), %eax
+    movl 4(%eax), %ebx
+    addl $12, %ebx
+    movl (%ebx), %eax
+    call *%eax
+    addl $8, %esp
+Loop1:
+    pushl $1
+    movl 8(%ebp), %eax
+    addl $16, %eax
+    movl (%eax), %eax
+    pushl %eax
+    popl %eax
+    popl %ebx
+    cmpl %eax, %ebx
+    setl %al
+    movzbl %al, %eax
+    pushl %eax
+    pushl %eax
+    cmpl $1, %eax
+    jne EndLoop1
+    movl 8(%ebp), %eax
+    addl $16, %eax
+    movl (%eax), %eax
+    pushl %eax
+    movl 8(%ebp), %eax
+    pushl %eax
+    movl (%esp), %eax
+    movl 4(%eax), %ebx
+    addl $16, %ebx
+    movl (%ebx), %eax
+    call *%eax
+    addl $8, %esp
+    movl 8(%ebp), %eax
+    addl $16, %eax
+    movl (%eax), %eax
+    pushl %eax
+    pushl $1
+    popl %eax
+    popl %ebx
+    subl %eax, %ebx
+    pushl %ebx
+    movl 8(%ebp), %eax
+    addl $16, %eax
+    popl %ebx
+    movl %ebx, (%eax)
+    jmp Loop1
+EndLoop1:
+    movl 8(%ebp), %eax
+    pushl %eax
     movl %ebp, %esp
     popl %ebp
     ret

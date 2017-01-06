@@ -18,6 +18,7 @@ namespace {
     std::shared_ptr<xcool::Layout> get_layout(std::string name);
     int const_index = 1;
     int if_lab = 1;
+    int while_lab = 1;
 
     bool is_para_offset(const string &offset) 
     {
@@ -176,6 +177,15 @@ namespace {
     }
     void CodeGenVisitor::visit(WhileExpr &expr) 
     {
+        text_segment.push_back("Loop" + int2str(while_lab) + ":");
+        expr.condition->accept_visitor(code_generator);
+        text_segment.push_back("    pushl %eax");
+        text_segment.push_back("    cmpl $1, %eax");
+        text_segment.push_back("    jne EndLoop" + int2str(while_lab));
+        
+        expr.body->accept_visitor(code_generator);
+        text_segment.push_back("    jmp Loop" + int2str(while_lab));
+        text_segment.push_back("EndLoop" + int2str(while_lab++) + ":");
 
     }
     void CodeGenVisitor::visit(IfExpr &expr) 
@@ -183,8 +193,7 @@ namespace {
         //condition
         expr.condition->accept_visitor(code_generator);
         text_segment.push_back("    popl %eax");
-        text_segment.push_back("    movl $1, %eax");
-        text_segment.push_back("    cmpl %eax, %ebx");
+        text_segment.push_back("    cmpl $1, %eax");
         text_segment.push_back("    jne ElseLab" + int2str(if_lab));
         //then
         text_segment.push_back("ThenLab" + int2str(if_lab) + ":");
@@ -194,8 +203,9 @@ namespace {
         text_segment.push_back("ElseLab" + int2str(if_lab) + ":");
         expr.else_body->accept_visitor(code_generator);
         //end if
-        text_segment.push_back("Endif" + int2str(if_lab++) + ":");
+        text_segment.push_back("EndIf" + int2str(if_lab++) + ":");
     }
+
     void CodeGenVisitor::visit(BinExpr &expr) 
     {
         switch (expr.op) {
@@ -240,6 +250,7 @@ namespace {
 
         }
     }
+
     void CodeGenVisitor::visit(CaseExpr &) {}
     void emit_asm_malloc(int length);
     bool is_basic_class(std::string name)
